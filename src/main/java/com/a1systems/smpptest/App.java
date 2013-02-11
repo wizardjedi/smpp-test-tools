@@ -102,7 +102,10 @@ public class App {
 		connectionTypeCount += line.hasOption(Config.OPT_TRANSCEIVER) ? 1 : 0;
 		connectionTypeCount += line.hasOption(Config.OPT_TRANSMITTER) ? 1 : 0;
 
-		if (connectionTypeCount > 1) {
+		if (
+			connectionTypeCount > 1
+			|| connectionTypeCount == 0
+		) {
 			throw new IllegalArgumentException("You have to specify one connection type.");
 		}
 
