@@ -3,24 +3,13 @@ package com.a1systems.smpptest;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.EnquireLink;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppBindException;
-import com.cloudhopper.smpp.type.SmppChannelException;
-import com.cloudhopper.smpp.type.SmppTimeoutException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import org.slf4j.Logger;
-
 import org.slf4j.LoggerFactory;
 
 public class SmppClientSession implements Runnable {
@@ -85,7 +74,7 @@ public class SmppClientSession implements Runnable {
 		try {
 			sem.acquire();
 		} catch (InterruptedException ex) {
-			java.util.logging.Logger.getLogger(SmppClientSession.class.getName()).log(Level.SEVERE, null, ex);
+
 		}
 	}
 
