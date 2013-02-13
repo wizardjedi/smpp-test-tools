@@ -36,6 +36,11 @@ public class Config {
 	protected boolean rebind = true;
 	protected boolean summary = false;
 
+	protected int enquireLinkPeriod = DEFAULT_ELINK_PERIOD;
+	protected int rebindPeriod = DEFAULT_REBIND_PERIOD;
+	protected int speed = DEFAULT_SPEED;
+
+
 	public boolean isSummary() {
 		return summary;
 	}
@@ -59,12 +64,6 @@ public class Config {
 	public void setVerboseLogging(boolean verboseLogging) {
 		this.verboseLogging = verboseLogging;
 	}
-
-	protected int enquireLinkPeriod = DEFAULT_ELINK_PERIOD;
-	protected int rebindPeriod = DEFAULT_REBIND_PERIOD;
-	protected int speed = DEFAULT_SPEED;
-
-
 
 	public int getSpeed() {
 		return speed;

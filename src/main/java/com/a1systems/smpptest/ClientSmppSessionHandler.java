@@ -8,7 +8,6 @@ import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
-import java.util.concurrent.CountDownLatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +16,10 @@ public class ClientSmppSessionHandler extends DefaultSmppSessionHandler {
 
 	Logger logger = LoggerFactory.getLogger(ClientSmppSessionHandler.class);
 
-	public ClientSmppSessionHandler() {
+	public ClientSmppSessionHandler(SmppClientSession clientSession) {
 		super(LoggerFactory.getLogger(ClientSmppSessionHandler.class));
+
+		this.clientSession = clientSession;
 	}
 
 	@Override
@@ -45,9 +46,5 @@ public class ClientSmppSessionHandler extends DefaultSmppSessionHandler {
 		response.setCommandStatus(0);
 
 		return response;
-	}
-
-	public void setSmppClientSession(SmppClientSession clientSession) {
-		this.clientSession = clientSession;
 	}
 }

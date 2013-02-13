@@ -44,7 +44,7 @@ public class App {
 			} else {
 				Config config = validate(line);
 
-				System.out.println(config);
+				new Client(config).run(line.getArgs());
 			}
 		} catch (ParseException exp) {
 			// oops, something went wrong
