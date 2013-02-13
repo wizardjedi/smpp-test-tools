@@ -1,6 +1,7 @@
 package com.a1systems.smpptest;
 
 import com.cloudhopper.smpp.SmppBindType;
+import java.io.BufferedReader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -35,12 +36,26 @@ public class App {
 				System.out.println(a);
 			}
 
-			if (line.hasOption("help")) {
+			if (line.hasOption(Config.OPT_HELP)) {
 				HelpFormatter hf = new HelpFormatter();
 
 				hf.setWidth(80);
 
 				hf.printHelp("smpptest <options> (<ton:npi:abonent> <ton:npi:sender> <text>|<hex>)", options);
+			} else if (line.hasOption(Config.OPT_EXAMPLE)) {
+				StringBuilder sb = new StringBuilder();
+
+				sb.append("TON:NPI:destinattion_addr ");
+				sb.append("TON:NPI:source_addr ");
+				sb.append("text ");
+				sb.append("dcs=0x08 ");
+				sb.append("esm_class=0x40 ");
+				sb.append("protocol_id=0x00 ");
+
+				sb.append("TLV:id:value ");
+				sb.append("TLV:0x2485:\"4584 758\" ");
+
+				System.out.println(sb.toString());
 			} else {
 				Config config = validate(line);
 
@@ -77,6 +92,14 @@ public class App {
 
 		options.addOption(Config.OPT_ENQUIRE_LINK_PERIOD, true, "Set enquire link period in seconds.Default:"+Config.DEFAULT_ELINK_PERIOD);
 		options.addOption(Config.OPT_REBIND_PERIOD, true, "Set rebind period in seconds.Default:"+Config.DEFAULT_REBIND_PERIOD);
+
+		/*
+		options.addOption(Config.OPT_SMPP_ESM_CLASS, true, "Set esm_class. (Not currently supported)");
+		options.addOption(Config.OPT_SMPP_PROTOCOL_ID, true, "Set protocol_id. (Not currently supported)");
+		*/
+
+		options.addOption(Config.OPT_EXAMPLE, false, "Print example string with all params. (Not currently supported)");
+
 
 		return options;
 	}

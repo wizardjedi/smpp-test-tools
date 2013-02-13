@@ -21,6 +21,12 @@ public class Config {
 	final static String OPT_NO_REBIND = "norebind";
 	final static String OPT_SUMMARY = "summary";
 
+	final static String OPT_SMPP_ESM_CLASS = "esm_class";
+	final static String OPT_SMPP_PROTOCOL_ID = "protocol_id";
+
+	final static String OPT_EXAMPLE = "example";
+
+
 	final static int DEFAULT_ELINK_PERIOD = 30;
 	final static int DEFAULT_REBIND_PERIOD = 60;
 	final static int DEFAULT_SPEED = 10;

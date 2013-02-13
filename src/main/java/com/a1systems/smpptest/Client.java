@@ -13,27 +13,33 @@ import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.pdu.BaseSm;
+import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSm;
+import com.cloudhopper.smpp.transcoder.DefaultPduTranscoder;
+import com.cloudhopper.smpp.transcoder.DefaultPduTranscoderContext;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
+import com.cloudhopper.smpp.util.PduUtil;
+import com.cloudhopper.smpp.util.SmppUtil;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class Client {
-	protected static final Logger logger = LoggerFactory.getLogger(Client.class);
 
+	protected static final Logger logger = LoggerFactory.getLogger(Client.class);
 	protected Config config;
 
 	public Client(Config config) {
@@ -42,7 +48,7 @@ public class Client {
 		this.config = config;
 	}
 
-	public void run(String[] msgs){
+	public void run(String[] msgs) {
 		ExecutorService pool = Executors.newFixedThreadPool(1);
 
 		DefaultSmppClient client = new DefaultSmppClient(Executors.newCachedThreadPool(), 20);
@@ -53,13 +59,13 @@ public class Client {
 		pool.submit(new Sender(clientSession, msgs));
 	}
 
-	public static class Sender implements Runnable{
-		protected final Logger logger = LoggerFactory.getLogger(Sender.class);
+	public static class Sender implements Runnable {
 
+		protected final Logger logger = LoggerFactory.getLogger(Sender.class);
 		protected SmppClientSession clientSession;
 		protected String[] arguments;
 
-		public Sender(SmppClientSession clientSession, String[] arguments){
+		public Sender(SmppClientSession clientSession, String[] arguments) {
 			this.clientSession = clientSession;
 			this.arguments = arguments;
 		}
@@ -70,46 +76,89 @@ public class Client {
 				if (clientSession.isBound()) {
 					SmppSession smppSession = clientSession.getSession();
 
-					SubmitSm ssm = new SubmitSm();
+					if (arguments.length == 3) {
+						SubmitSm ssm = new SubmitSm();
 
-					ssm.setDestAddress(getAddress(arguments[0]));
-					ssm.setSourceAddress(getAddress(arguments[1]));
+						ssm.setDestAddress(getAddress(arguments[0]));
+						ssm.setSourceAddress(getAddress(arguments[1]));
 
-					byte[] buffer = StringUtil.getAsciiBytes(arguments[2]);
-					try {
-						ssm.setShortMessage(buffer);
-					} catch (SmppInvalidArgumentException ex) {
-						//
+						byte[] buffer = StringUtil.getAsciiBytes(arguments[2]);
+						try {
+							ssm.setShortMessage(buffer);
+
+							try {
+								logger.debug("Try to send {}", ssm.toString());
+
+								smppSession.submit(ssm, TimeUnit.SECONDS.toMillis(60));
+							} catch (RecoverablePduException ex) {
+								//
+							} catch (UnrecoverablePduException ex) {
+								//
+							} catch (SmppTimeoutException ex) {
+								//
+							} catch (SmppChannelException ex) {
+								//
+							} catch (InterruptedException ex) {
+								//
+							}
+
+							break;
+						} catch (SmppInvalidArgumentException ex) {
+							logger.error("{}", ex);
+						}
+					} else if (arguments.length == 1) {
+						logger.debug("Length {}", arguments[0].length());
+
+						String len = HexUtil.toHexString(arguments[0].length() / 2 + 16);
+
+						String head = len+"00000004"+"00000000"+"00000001";
+
+						logger.debug(head+arguments[0]);
+
+						byte[] bytes = HexString.valueOf(head+arguments[0]).asBytes();
+
+						BigEndianHeapChannelBuffer buffer = new BigEndianHeapChannelBuffer(bytes);
+
+						logger.debug("{}", buffer);
+
+						DefaultPduTranscoderContext context = new DefaultPduTranscoderContext();
+						DefaultPduTranscoder transcoder = new DefaultPduTranscoder(context);
+
+						SubmitSm ssm;
+						try {
+							logger.debug("Try to decode");
+
+							ssm = (SubmitSm)transcoder.decode(buffer);
+
+							logger.debug("{}", ssm);
+							try {
+								smppSession.sendRequestPdu(ssm, 60000, true);
+							} catch (SmppTimeoutException ex) {
+								logger.error("{}", ex);
+							} catch (SmppChannelException ex) {
+								logger.error("{}", ex);
+							} catch (InterruptedException ex) {
+								logger.error("{}", ex);
+							}
+						} catch (UnrecoverablePduException ex) {
+							logger.error("{}", ex);
+						} catch (RecoverablePduException ex) {
+							logger.error("{}", ex);
+						}
+
+						break;
 					}
-
-					try {
-						logger.debug("Try to send {}", ssm.toString());
-
-						smppSession.submit(ssm, TimeUnit.SECONDS.toMillis(60));
-					} catch (RecoverablePduException ex) {
-						java.util.logging.Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-					} catch (UnrecoverablePduException ex) {
-						java.util.logging.Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-					} catch (SmppTimeoutException ex) {
-						java.util.logging.Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-					} catch (SmppChannelException ex) {
-						java.util.logging.Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-					} catch (InterruptedException ex) {
-						java.util.logging.Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-					}
-
-					break;
 				}
-			} while(true);
+			} while (true);
 		}
 
-		public Address getAddress(String adr){
+		public Address getAddress(String adr) {
 			Address a = new Address();
 
 			String[] parts = adr.split(":");
 
-			a.setTon((byte)Integer.parseInt(parts[0]));
-			a.setNpi((byte)Integer.parseInt(parts[1]));
+			a.setTon((byte) Integer.parseInt(parts[0]));
+			a.setNpi((byte) Integer.parseInt(parts[1]));
 
 			a.setAddress(parts[2]);
 
