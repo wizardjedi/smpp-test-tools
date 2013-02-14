@@ -4,19 +4,11 @@
  */
 package com.a1systems.smpptest;
 
-import com.cloudhopper.commons.charset.GSMCharset;
-import com.cloudhopper.commons.gsm.GsmUtil;
 import com.cloudhopper.commons.util.HexString;
 import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.commons.util.StringUtil;
-import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppSession;
-import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.pdu.BaseSm;
-import com.cloudhopper.smpp.pdu.Pdu;
-import com.cloudhopper.smpp.pdu.PduRequest;
-import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.transcoder.DefaultPduTranscoder;
 import com.cloudhopper.smpp.transcoder.DefaultPduTranscoderContext;
@@ -26,14 +18,14 @@ import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
-import com.cloudhopper.smpp.util.PduUtil;
-import com.cloudhopper.smpp.util.SmppUtil;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +41,36 @@ public class Client {
 	}
 
 	public void run(String[] msgs) {
-		ExecutorService pool = Executors.newFixedThreadPool(1);
+		ExecutorService pool = Executors.newFixedThreadPool(10);
 
 		DefaultSmppClient client = new DefaultSmppClient(Executors.newCachedThreadPool(), 20);
 
 		SmppClientSession clientSession = new SmppClientSession(client, config);
 
+		CountDownLatch latch = new CountDownLatch(1);
+
 		pool.submit(clientSession);
-		pool.submit(new Sender(clientSession, msgs));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+		pool.submit(new Sender(clientSession, msgs, latch));
+
+		try {
+			latch.await();
+		} catch (InterruptedException ex) {
+			//
+		}
+
+		pool.shutdownNow();
+
+		logger.debug("Shutdown");
 	}
 
 	public static class Sender implements Runnable {
@@ -64,16 +78,21 @@ public class Client {
 		protected final Logger logger = LoggerFactory.getLogger(Sender.class);
 		protected SmppClientSession clientSession;
 		protected String[] arguments;
+		protected CountDownLatch doneLatch;
 
-		public Sender(SmppClientSession clientSession, String[] arguments) {
+		public Sender(SmppClientSession clientSession, String[] arguments, CountDownLatch latch) {
 			this.clientSession = clientSession;
 			this.arguments = arguments;
+			this.doneLatch = latch;
 		}
 
 		@Override
 		public void run() {
 			do {
-				if (clientSession.isBound()) {
+				if (
+					clientSession.isBound()
+					&& clientSession.attemptSend()
+				) {
 					SmppSession smppSession = clientSession.getSession();
 
 					if (arguments.length == 3) {
@@ -101,11 +120,11 @@ public class Client {
 							} catch (InterruptedException ex) {
 								//
 							}
-
-							break;
 						} catch (SmppInvalidArgumentException ex) {
 							logger.error("{}", ex);
 						}
+
+						doneLatch.countDown();
 					} else if (arguments.length == 1) {
 						logger.debug("Length {}", arguments[0].length());
 
@@ -146,7 +165,7 @@ public class Client {
 							logger.error("{}", ex);
 						}
 
-						break;
+						//break;
 					}
 				}
 			} while (true);

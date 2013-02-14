@@ -32,6 +32,8 @@ public class SmppClientSession implements Runnable {
 	protected Config config;
 	protected AtomicInteger sessionState = new AtomicInteger(DEFAULT_IDLE);
 
+	protected AtomicInteger sentMessages;
+
 	SmppClientSession(DefaultSmppClient client, Config config) {
 		this.config = config;
 
@@ -47,6 +49,8 @@ public class SmppClientSession implements Runnable {
 		this.sessionHandler = new ClientSmppSessionHandler(this);
 
 		this.client = client;
+
+		this.sentMessages = new AtomicInteger(config.getSpeed());
 	}
 
 	public DefaultSmppClient getClient() {
@@ -93,6 +97,16 @@ public class SmppClientSession implements Runnable {
 		this.config = config;
 	}
 
+	public boolean attemptSend(){
+		int msgs = this.sentMessages.incrementAndGet();
+
+		return msgs <= config.getSpeed();
+	}
+
+	public void resetSentMessages(){
+		this.sentMessages.set(0);
+	}
+
 	public void binding() {
 		if (
 			sessionState.get() == DEFAULT_IDLE
@@ -111,6 +125,7 @@ public class SmppClientSession implements Runnable {
 		this.session = session;
 
 		timer.scheduleAtFixedRate(new EnquireLinkTask(this), 0, TimeUnit.SECONDS.toMillis(config.getEnquireLinkPeriod()));
+		timer.scheduleAtFixedRate(new ClearSpeedTask(this), 0, TimeUnit.SECONDS.toMillis(1));
 	}
 
 	@Override
@@ -124,6 +139,20 @@ public class SmppClientSession implements Runnable {
 		timer.cancel();
 		session.destroy();
 		binding();
+	}
+
+	private static class ClearSpeedTask extends TimerTask {
+		protected SmppClientSession clientSession;
+
+		public ClearSpeedTask(SmppClientSession clientSession) {
+			this.clientSession = clientSession;
+		}
+
+		@Override
+		public void run() {
+			this.clientSession.resetSentMessages();
+		}
+
 	}
 
 	private static class RebindTask extends TimerTask {
