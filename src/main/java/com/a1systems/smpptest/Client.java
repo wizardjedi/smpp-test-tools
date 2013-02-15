@@ -77,6 +77,8 @@ public class Client extends AsyncTaskImpl{
 	public void stop() {
 		if (monitor.isStopped() || monitor.isStopping()) {
 			logger.error("Already stopping");
+			
+			return;
 		}
 
 		logger.trace("Stopping");
@@ -85,10 +87,12 @@ public class Client extends AsyncTaskImpl{
 
 		logger.trace("Stopping all tasks");
 
+		taskPool.shutdown();
+		
 		for (AsyncTask task:childTasks) {
 			task.stop();
 		}
-
+		
 		try {
 			logger.trace("Waiting child tasks stopped");
 

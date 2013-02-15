@@ -5,9 +5,9 @@ import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ShutdownHook extends Thread{
-	private final Logger logger = LoggerFactory.getLogger(ShutdownHook.class);
+public class ShutdownHook extends Thread {
 
+	private final Logger logger = LoggerFactory.getLogger(ShutdownHook.class);
 	protected AsyncTask task;
 
 	public ShutdownHook(AsyncTask task) {
@@ -15,10 +15,12 @@ public class ShutdownHook extends Thread{
 	}
 
 	@Override
-	public void run(){
-		try {
+	public void run() {
+		if (task.getMonitor().isWorking()) {
 			task.stop();
+		}
 
+		try {
 			ServiceMonitorUtils.waitStopped(task.getMonitor());
 		} catch (InterruptedException ex) {
 			logger.error("{}", ex);

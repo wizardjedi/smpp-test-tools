@@ -34,16 +34,12 @@ public class ServiceMonitorUtils {
 	public static void waitStopped(ServiceMonitor monitor) throws InterruptedException{
 		while (!monitor.isStopped()) {
 			Thread.sleep(200);
-
-			System.out.println(monitor);
 		}
 	}
 
 	public static void waitAllStopped(List<ServiceMonitor> monitors) throws InterruptedException{
 		while (!ServiceMonitorUtils.isAllStopped(monitors)) {
 			Thread.sleep(200);
-
-			System.out.println(Thread.currentThread().getName() + monitors.toString());
 		}
 	}
 

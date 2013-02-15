@@ -20,7 +20,7 @@ public class ServiceMonitor {
 	}
 
 	public void stopping(){
-		this.state.set(STATE_STOPPING);
+		this.state.compareAndSet(STATE_WORKING, STATE_STOPPING);
 	}
 
 	public void stopped(){
