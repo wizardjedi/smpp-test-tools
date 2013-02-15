@@ -24,8 +24,6 @@ public class RebindTimerTask extends TimerTask {
 	public void run() {
 		SmppClient client = sessionTask.getClient();
 
-		logger.trace("Execute");
-
 		if (!sessionTask.isBound()) {
 			try {
 				logger.debug("Binding");

@@ -21,7 +21,9 @@ public class Client extends AsyncTaskImpl{
 	protected ExecutorService taskPool;
 	protected RateLimiter rateLimiter;
 	protected java.util.concurrent.ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
-
+	protected volatile boolean isDone=false;
+	protected SessionSupTask sessionTask;
+	
 	public Client(Config config) {
 		super(LoggerFactory.getLogger(Client.class));
 
@@ -30,6 +32,7 @@ public class Client extends AsyncTaskImpl{
 		this.rateLimiter = RateLimiter.create(config.getSpeed());
 	}
 
+	@Override
 	public void start(){
 		logger.trace("Running");
 
@@ -40,7 +43,7 @@ public class Client extends AsyncTaskImpl{
 
 		logger.trace("Creating session task");
 
-		SessionSupTask sessionTask = new SessionSupTask(config);
+		sessionTask = new SessionSupTask(config);
 		childTasks.add(sessionTask);
 		childMonitors.add(sessionTask.getMonitor());
 
@@ -51,7 +54,7 @@ public class Client extends AsyncTaskImpl{
 		for (int i=0;i<10;i++) {
 			logger.trace("Creating sender task {}", i);
 
-			SenderTask task = new SenderTask(config, rateLimiter, messageQueue);
+			SenderTask task = new SenderTask(config, rateLimiter, messageQueue, this);
 
 			childTasks.add(task);
 
@@ -113,25 +116,10 @@ public class Client extends AsyncTaskImpl{
 
 		logger.trace("Start working");
 
-		/*int i=0;
-
-		while(!monitor.isStopping()) {
-			if (messageQueue.isEmpty()) {
-				messageQueue.add(new Message("msg #"+i));
-
-				//logger.debug("Generated message msg #"+i);
-
-				i++;
-			}
-		}*/
-
-		logger.debug("{},{}", config.isExitOnDone(), config.isStdin());
-		try {
-			Thread.sleep(TimeUnit.SECONDS.toMillis(2));
-		} catch (InterruptedException ex) {
-			Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+		if (!config.isStdin()) {
+			messageQueue.add(new Message("sadsada"));
 		}
-
+		
 		if (
 			!config.isExitOnDone()
 			|| config.isStdin()
@@ -142,11 +130,23 @@ public class Client extends AsyncTaskImpl{
 				logger.error("{}", ex);
 			}
 		} else {
+			while (!isDone) {
+				
+			}
+			
 			stop();
 		}
 
 		monitor.stopped();
 
 		logger.trace("Shutdown");
+	}
+
+	public void setDone(boolean done) {
+		this.isDone = done;
+	}
+
+	public SessionSupTask getSessionTask() {
+		return this.sessionTask;
 	}
 }
