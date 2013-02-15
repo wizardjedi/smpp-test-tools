@@ -1,7 +1,6 @@
 package com.a1systems.smpptest;
 
 import com.cloudhopper.smpp.SmppBindType;
-import java.io.BufferedReader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -16,6 +15,7 @@ public class App {
 	protected int port;
 	protected String systemid;
 	protected String password;
+	protected ServiceMonitor monitor = new ServiceMonitor();
 
 	public static void main(String[] args) {
 		new App().run(args);
@@ -29,12 +29,6 @@ public class App {
 			Options options = getOptions();
 
 			CommandLine line = parser.parse(options, args);
-
-			String[] ar = line.getArgs();
-
-			for (String a:ar) {
-				System.out.println(a);
-			}
 
 			if (line.hasOption(Config.OPT_HELP)) {
 				HelpFormatter hf = new HelpFormatter();
@@ -59,7 +53,14 @@ public class App {
 			} else {
 				Config config = validate(line);
 
-				new Client(config).run(line.getArgs());
+				Client client = new Client(config);
+				ShutdownHook shutdownHook = new ShutdownHook(client);
+
+				Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+				client.run(line);
+
+				//Runtime.getRuntime().addShutdownHook(shutdownHook);
 			}
 		} catch (ParseException exp) {
 			// oops, something went wrong
@@ -80,7 +81,7 @@ public class App {
 		options.addOption(Config.OPT_PASSWORD, true, "Set password for connection.");
 
 		options.addOption(Config.OPT_HEX, false, "Use hex string as packet body.");
-		//options.addOption("hexraw", false, "Use hex string as a packet.");
+		options.addOption(Config.OPT_HEXRAW, false, "Use hex string as packet.");
 		//options.addOption("nodlr", false, "Do not accept deliver_sm.");
 
 		options.addOption(Config.OPT_SPEED, true, "Set speed in sms/sec. Default:"+Config.DEFAULT_SPEED);
@@ -91,6 +92,7 @@ public class App {
 		options.addOption(Config.OPT_SHORT_VERBOSE, Config.OPT_LONG_VERBOSE, false, "Verbose logging.");
 
 		options.addOption(Config.OPT_ENQUIRE_LINK_PERIOD, true, "Set enquire link period in seconds.Default:"+Config.DEFAULT_ELINK_PERIOD);
+		options.addOption(Config.OPT_ENQUIRE_LINK_ON_NO_TRANSMIT, false, "Send enquire link only if there are no messages.");
 		options.addOption(Config.OPT_REBIND_PERIOD, true, "Set rebind period in seconds.Default:"+Config.DEFAULT_REBIND_PERIOD);
 
 		/*
@@ -100,6 +102,8 @@ public class App {
 
 		options.addOption(Config.OPT_EXAMPLE, false, "Print example string with all params. (Not currently supported)");
 
+		options.addOption(Config.OPT_STDIN, false, "Use STDIN instead of command line params. This option will apply -wait by default.");
+		options.addOption(Config.OPT_SUBTOTAL_PERIOD, true, "Set period in seconds for subtotal summary. Default: "+Config.DEFAULT_SUBTOTAL_PERIOD);
 
 		return options;
 	}
@@ -189,6 +193,8 @@ public class App {
 		config.setRebind(!line.hasOption(Config.OPT_NO_REBIND));
 
 		config.setSummary(line.hasOption(Config.OPT_SUMMARY));
+
+		config.setStdin(line.hasOption(Config.OPT_STDIN));
 
 		return config;
 	}

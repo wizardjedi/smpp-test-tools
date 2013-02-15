@@ -11,9 +11,8 @@
 	</appender>
 
 	<logger name="org.springframework" level="info" />
-	<logger name="com.a1systems" level="debug" />
-	<logger name="com.cloudhopper.smpp" level="error" />
-	<logger name="com.a1systems.smpptest.App$ClientSmppSessionHandler" level="error" />
+	<logger name="com.a1systems" level="trace" />
+	<logger name="com.cloudhopper.smpp" level="debug" />
 
 	<root level="debug" debug="true">
 		<appender-ref ref="console" />

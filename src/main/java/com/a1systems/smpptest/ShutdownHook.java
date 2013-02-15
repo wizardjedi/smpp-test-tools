@@ -1,30 +1,27 @@
 package com.a1systems.smpptest;
 
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ShutdownHook extends Thread{
 	private final Logger logger = LoggerFactory.getLogger(ShutdownHook.class);
 
-	protected ServiceMonitor monitor;
+	protected AsyncTask task;
 
-	public ShutdownHook(ServiceMonitor monitor) {
-		this.monitor = monitor;
+	public ShutdownHook(AsyncTask task) {
+		this.task = task;
 	}
 
 	@Override
 	public void run(){
-		monitor.stopping();
+		try {
+			task.stop();
 
-		while (!monitor.isStopped()) {
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException ex) {
-				logger.error("Error during stopping. {}", ex.getMessage());
-				ex.printStackTrace();
-				break;
-			}
+			ServiceMonitorUtils.waitStopped(task.getMonitor());
+		} catch (InterruptedException ex) {
+			logger.error("{}", ex);
 		}
 	}
 }

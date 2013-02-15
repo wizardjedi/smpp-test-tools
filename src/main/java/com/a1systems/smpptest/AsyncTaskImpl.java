@@ -1,11 +1,14 @@
 package com.a1systems.smpptest;
 
-public class AsyncTaskImpl implements AsyncTask{
+import org.slf4j.Logger;
 
+public class AsyncTaskImpl implements AsyncTask{
+	protected Logger logger;
 	protected ServiceMonitor monitor;
 
-	public AsyncTaskImpl() {
+	public AsyncTaskImpl(Logger logger) {
 		this.monitor = new ServiceMonitor();
+		this.logger = logger;
 	}
 
 	public ServiceMonitor getMonitor(){
@@ -14,9 +17,11 @@ public class AsyncTaskImpl implements AsyncTask{
 
 	@Override
 	public void start() {
+		logger.trace("Starting");
+
 		monitor.running();
 
-		monitor.working();
+		logger.trace("Started");
 	}
 
 	@Override
@@ -26,9 +31,15 @@ public class AsyncTaskImpl implements AsyncTask{
 
 	@Override
 	public void stop() {
-		monitor.stopping();
+		if (monitor.isStopping() || monitor.isStopped()) {
+			logger.error("Already stopping/ed");
 
-		monitor.stopped();
+			return;
+		}
+
+		logger.trace("Stopping");
+
+		monitor.stopping();
 	}
 
 	@Override

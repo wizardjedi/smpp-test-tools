@@ -17,15 +17,33 @@ public class ServiceMonitorUtils {
 		return fl;
 	}
 
+	public static boolean isAllWorking(List<ServiceMonitor> monitors){
+		boolean fl = true;
+
+		for (ServiceMonitor mon:monitors) {
+			fl &= mon.isWorking();
+
+			if (!fl) {
+				return fl;
+			}
+		}
+
+		return fl;
+	}
+
 	public static void waitStopped(ServiceMonitor monitor) throws InterruptedException{
 		while (!monitor.isStopped()) {
 			Thread.sleep(200);
+
+			System.out.println(monitor);
 		}
 	}
 
 	public static void waitAllStopped(List<ServiceMonitor> monitors) throws InterruptedException{
 		while (!ServiceMonitorUtils.isAllStopped(monitors)) {
 			Thread.sleep(200);
+
+			System.out.println(Thread.currentThread().getName() + monitors.toString());
 		}
 	}
 
@@ -36,13 +54,22 @@ public class ServiceMonitorUtils {
 	}
 
 	static void waitStopping(ServiceMonitor monitor) throws InterruptedException {
-		while (!monitor.isStopping()) {
+		while (
+			!monitor.isStopping()
+			&& !monitor.isStopped()
+		) {
 			Thread.sleep(200);
 		}
 	}
 
 	static void waitWorking(ServiceMonitor monitor) throws InterruptedException{
 		while (!monitor.isWorking()) {
+			Thread.sleep(200);
+		}
+	}
+
+	static void waitAllWorking(List<ServiceMonitor> childMonitors) throws InterruptedException {
+		while (!isAllWorking(childMonitors)) {
 			Thread.sleep(200);
 		}
 	}

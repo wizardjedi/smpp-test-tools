@@ -12,21 +12,26 @@ public class Config {
 	final static String OPT_TRANSMITTER = "ts";
 	final static String OPT_TRANSCEIVER = "tc";
 	final static String OPT_HEX = "hex";
+	final static String OPT_HEXRAW = "hexraw";
 	final static String OPT_WAIT = "wait";
 	final static String OPT_ENQUIRE_LINK_PERIOD = "elinkperiod";
+	final static String OPT_ENQUIRE_LINK_ON_NO_TRANSMIT = "elinkonnotx";
 	final static String OPT_REBIND_PERIOD = "rebindperiod";
 	final static String OPT_SPEED = "speed";
 	final static String OPT_SHORT_VERBOSE = "v";
 	final static String OPT_LONG_VERBOSE = "verbose";
 	final static String OPT_NO_REBIND = "norebind";
 	final static String OPT_SUMMARY = "summary";
+	final static String OPT_STDIN = "stdin";
+	final static String OPT_SUBTOTAL_PERIOD = "subtotalperiod";
+
 
 	final static String OPT_SMPP_ESM_CLASS = "esm_class";
 	final static String OPT_SMPP_PROTOCOL_ID = "protocol_id";
 
 	final static String OPT_EXAMPLE = "example";
 
-
+	final static int DEFAULT_SUBTOTAL_PERIOD = 60;
 	final static int DEFAULT_ELINK_PERIOD = 30;
 	final static int DEFAULT_REBIND_PERIOD = 60;
 	final static int DEFAULT_SPEED = 10;
@@ -41,11 +46,19 @@ public class Config {
 	protected boolean verboseLogging = false;
 	protected boolean rebind = true;
 	protected boolean summary = false;
+	protected boolean stdin = false;
 
 	protected int enquireLinkPeriod = DEFAULT_ELINK_PERIOD;
 	protected int rebindPeriod = DEFAULT_REBIND_PERIOD;
 	protected int speed = DEFAULT_SPEED;
 
+	public boolean isStdin() {
+		return stdin;
+	}
+
+	public void setStdin(boolean stdin) {
+		this.stdin = stdin;
+	}
 
 	public boolean isSummary() {
 		return summary;

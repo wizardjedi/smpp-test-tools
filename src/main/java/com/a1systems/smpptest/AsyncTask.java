@@ -8,4 +8,6 @@ public interface AsyncTask {
 	public void stop();
 
 	public void stop(int timeout);
+
+	public ServiceMonitor getMonitor();
 }

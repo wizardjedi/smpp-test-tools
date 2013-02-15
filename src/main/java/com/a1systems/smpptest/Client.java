@@ -1,187 +1,148 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.a1systems.smpptest;
 
-import com.cloudhopper.commons.util.HexString;
-import com.cloudhopper.commons.util.HexUtil;
-import com.cloudhopper.commons.util.StringUtil;
-import com.cloudhopper.smpp.SmppSession;
-import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.pdu.SubmitSm;
-import com.cloudhopper.smpp.transcoder.DefaultPduTranscoder;
-import com.cloudhopper.smpp.transcoder.DefaultPduTranscoderContext;
-import com.cloudhopper.smpp.type.Address;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppChannelException;
-import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
-import com.cloudhopper.smpp.type.SmppTimeoutException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CountDownLatch;
+import com.a1systems.smpptest.domain.Message;
+import com.google.common.util.concurrent.RateLimiter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.jboss.netty.buffer.BigEndianHeapChannelBuffer;
-import org.slf4j.Logger;
+import java.util.logging.Logger;
+import org.apache.commons.cli.CommandLine;
 import org.slf4j.LoggerFactory;
 
-public class Client {
-
-	protected static final Logger logger = LoggerFactory.getLogger(Client.class);
+public class Client extends AsyncTaskImpl{
 	protected Config config;
 
+	protected List<AsyncTask> childTasks = new ArrayList<AsyncTask>();
+	protected List<ServiceMonitor> childMonitors = new ArrayList<ServiceMonitor>();
+	protected ExecutorService taskPool;
+	protected RateLimiter rateLimiter;
+	protected java.util.concurrent.ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
+
 	public Client(Config config) {
-		logger.debug("Create client object for with {}", config);
+		super(LoggerFactory.getLogger(Client.class));
 
 		this.config = config;
+
+		this.rateLimiter = RateLimiter.create(config.getSpeed());
 	}
 
-	public void run(String[] msgs) {
-		ExecutorService pool = Executors.newFixedThreadPool(10);
+	public void start(){
+		logger.trace("Running");
 
-		DefaultSmppClient client = new DefaultSmppClient(Executors.newCachedThreadPool(), 20);
+		monitor.running();
 
-		SmppClientSession clientSession = new SmppClientSession(client, config);
+		// create child threads
+		taskPool = Executors.newCachedThreadPool();
 
-		CountDownLatch latch = new CountDownLatch(1);
+		logger.trace("Creating session task");
 
-		pool.submit(clientSession);
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
-		pool.submit(new Sender(clientSession, msgs, latch));
+		SessionSupTask sessionTask = new SessionSupTask(config);
+		childTasks.add(sessionTask);
+		childMonitors.add(sessionTask.getMonitor());
+
+		logger.trace("Submitting session task to pool");
+
+		taskPool.submit(sessionTask);
+
+		for (int i=0;i<10;i++) {
+			logger.trace("Creating sender task {}", i);
+
+			SenderTask task = new SenderTask(config, rateLimiter, messageQueue);
+
+			childTasks.add(task);
+
+			childMonitors.add(task.getMonitor());
+
+			logger.trace("Submiting task to pool");
+
+			taskPool.submit(task);
+		}
 
 		try {
-			latch.await();
+			ServiceMonitorUtils.waitAllWorking(childMonitors);
 		} catch (InterruptedException ex) {
-			//
+			logger.error("{}", ex);
 		}
 
-		pool.shutdownNow();
+		logger.trace("Working");
 
-		logger.debug("Shutdown");
+		monitor.working();
 	}
 
-	public static class Sender implements Runnable {
-
-		protected final Logger logger = LoggerFactory.getLogger(Sender.class);
-		protected SmppClientSession clientSession;
-		protected String[] arguments;
-		protected CountDownLatch doneLatch;
-
-		public Sender(SmppClientSession clientSession, String[] arguments, CountDownLatch latch) {
-			this.clientSession = clientSession;
-			this.arguments = arguments;
-			this.doneLatch = latch;
+	@Override
+	public void stop() {
+		if (monitor.isStopped() || monitor.isStopping()) {
+			logger.error("Already stopping");
 		}
 
-		@Override
-		public void run() {
-			do {
-				if (
-					clientSession.isBound()
-					&& clientSession.attemptSend()
-				) {
-					SmppSession smppSession = clientSession.getSession();
+		logger.trace("Stopping");
 
-					if (arguments.length == 3) {
-						SubmitSm ssm = new SubmitSm();
+		monitor.stopping();
 
-						ssm.setDestAddress(getAddress(arguments[0]));
-						ssm.setSourceAddress(getAddress(arguments[1]));
+		logger.trace("Stopping all tasks");
 
-						byte[] buffer = StringUtil.getAsciiBytes(arguments[2]);
-						try {
-							ssm.setShortMessage(buffer);
-
-							try {
-								logger.debug("Try to send {}", ssm.toString());
-
-								smppSession.submit(ssm, TimeUnit.SECONDS.toMillis(60));
-							} catch (RecoverablePduException ex) {
-								//
-							} catch (UnrecoverablePduException ex) {
-								//
-							} catch (SmppTimeoutException ex) {
-								//
-							} catch (SmppChannelException ex) {
-								//
-							} catch (InterruptedException ex) {
-								//
-							}
-						} catch (SmppInvalidArgumentException ex) {
-							logger.error("{}", ex);
-						}
-
-						doneLatch.countDown();
-					} else if (arguments.length == 1) {
-						logger.debug("Length {}", arguments[0].length());
-
-						String len = HexUtil.toHexString(arguments[0].length() / 2 + 16);
-
-						String head = len+"00000004"+"00000000"+"00000001";
-
-						logger.debug(head+arguments[0]);
-
-						byte[] bytes = HexString.valueOf(head+arguments[0]).asBytes();
-
-						BigEndianHeapChannelBuffer buffer = new BigEndianHeapChannelBuffer(bytes);
-
-						logger.debug("{}", buffer);
-
-						DefaultPduTranscoderContext context = new DefaultPduTranscoderContext();
-						DefaultPduTranscoder transcoder = new DefaultPduTranscoder(context);
-
-						SubmitSm ssm;
-						try {
-							logger.debug("Try to decode");
-
-							ssm = (SubmitSm)transcoder.decode(buffer);
-
-							logger.debug("{}", ssm);
-							try {
-								smppSession.sendRequestPdu(ssm, 60000, true);
-							} catch (SmppTimeoutException ex) {
-								logger.error("{}", ex);
-							} catch (SmppChannelException ex) {
-								logger.error("{}", ex);
-							} catch (InterruptedException ex) {
-								logger.error("{}", ex);
-							}
-						} catch (UnrecoverablePduException ex) {
-							logger.error("{}", ex);
-						} catch (RecoverablePduException ex) {
-							logger.error("{}", ex);
-						}
-
-						//break;
-					}
-				}
-			} while (true);
+		for (AsyncTask task:childTasks) {
+			task.stop();
 		}
 
-		public Address getAddress(String adr) {
-			Address a = new Address();
+		try {
+			logger.trace("Waiting child tasks stopped");
 
-			String[] parts = adr.split(":");
-
-			a.setTon((byte) Integer.parseInt(parts[0]));
-			a.setNpi((byte) Integer.parseInt(parts[1]));
-
-			a.setAddress(parts[2]);
-
-			return a;
+			ServiceMonitorUtils.waitAllStopped(childMonitors);
+		} catch (InterruptedException ex) {
+			logger.error("{}", ex);
 		}
+	}
+
+	public void run(CommandLine line) {
+		start();
+
+		try {
+			ServiceMonitorUtils.waitWorking(monitor);
+		} catch (InterruptedException ex) {
+			logger.error("{}", ex);
+		}
+
+		logger.trace("Start working");
+
+		/*int i=0;
+
+		while(!monitor.isStopping()) {
+			if (messageQueue.isEmpty()) {
+				messageQueue.add(new Message("msg #"+i));
+
+				//logger.debug("Generated message msg #"+i);
+
+				i++;
+			}
+		}*/
+
+		logger.debug("{},{}", config.isExitOnDone(), config.isStdin());
+		try {
+			Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+		} catch (InterruptedException ex) {
+			Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+		}
+
+		if (
+			!config.isExitOnDone()
+			|| config.isStdin()
+		) {
+			try {
+				ServiceMonitorUtils.waitStopping(monitor);
+			} catch (InterruptedException ex) {
+				logger.error("{}", ex);
+			}
+		} else {
+			stop();
+		}
+
+		monitor.stopped();
+
+		logger.trace("Shutdown");
 	}
 }
