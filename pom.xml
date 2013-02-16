@@ -26,6 +26,8 @@
 	</properties>
 
 	<dependencies>
+		<!-- Cloudhopper smpp library -->
+
 		<dependency>
 			<groupId>com.cloudhopper</groupId>
 			<artifactId>ch-smpp</artifactId>
@@ -44,6 +46,8 @@
 			<type>jar</type>
 			<version>${ch.commons.charset.version}</version>
 		</dependency>
+
+		<!-- Apache commons cli library -->
 
 		<dependency>
 			<groupId>commons-cli</groupId>
@@ -101,6 +105,7 @@
 			<version>${slf4j.version}</version>
 		</dependency>
 
+		<!-- logback -->
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
@@ -117,7 +122,7 @@
 			<version>${logback.version}</version>
 		</dependency>
 		
-
+		<!-- Guava libraries -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
