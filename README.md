@@ -11,3 +11,5 @@ Planned to implement.
  * Test smsc
  * Smpp logging proxy
  * Smpp coder/decoder with field replace support
+
+This project provided AS IS. Please do not use it in production and support didn't promise.
