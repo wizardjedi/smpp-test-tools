@@ -24,7 +24,9 @@ public class SessionSupTask extends AsyncTaskImpl implements Runnable {
 	protected SmppClient client;
 	protected Timer timer;
 	protected TimerTask rebindTask, elinkTask;
-
+	protected long lastPacketTimeMillis = 0;
+	
+	
 	public SessionSupTask(Config config) {
 		super(LoggerFactory.getLogger(SessionSupTask.class));
 
@@ -80,7 +82,7 @@ public class SessionSupTask extends AsyncTaskImpl implements Runnable {
 		elinkTask = new EnquireLinkTask(this);
 
 		timer.scheduleAtFixedRate(rebindTask, 0, TimeUnit.SECONDS.toMillis(config.getRebindPeriod()));
-		timer.scheduleAtFixedRate(elinkTask, 0, TimeUnit.SECONDS.toMillis(config.getEnquireLinkPeriod()));
+		timer.scheduleAtFixedRate(elinkTask, 0, TimeUnit.SECONDS.toMillis(1));
 
 		try {
 			ServiceMonitorUtils.waitStopping(monitor);
@@ -118,5 +120,23 @@ public class SessionSupTask extends AsyncTaskImpl implements Runnable {
 
 	public void channelClosed() {
 		this.session.destroy();
+	}
+
+	public void packetSent(){
+		synchronized(this) {
+			long cur = System.currentTimeMillis();
+			
+			if (cur >= this.lastPacketTimeMillis) {
+				this.lastPacketTimeMillis = cur;
+			}
+		}
+	}
+	
+	public Config getConfig() {
+		return this.config;
+	}
+
+	public long getLastPacketTimeMillis() {
+		return this.lastPacketTimeMillis;
 	}
 }

@@ -33,6 +33,8 @@ public class RebindTimerTask extends TimerTask {
 				sessionTask.setSession(session);
 
 				logger.debug("Bound");
+				
+				sessionTask.packetSent();
 			} catch (SmppTimeoutException ex) {
 				logger.error("{}", ex);
 			} catch (SmppChannelException ex) {

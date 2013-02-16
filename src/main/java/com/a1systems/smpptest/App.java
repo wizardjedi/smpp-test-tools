@@ -196,6 +196,8 @@ public class App {
 
 		config.setStdin(line.hasOption(Config.OPT_STDIN));
 
+		config.setElinkNoTransmit(line.hasOption(Config.OPT_ENQUIRE_LINK_ON_NO_TRANSMIT));
+		
 		return config;
 	}
 }

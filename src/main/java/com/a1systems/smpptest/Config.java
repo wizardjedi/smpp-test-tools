@@ -47,6 +47,7 @@ public class Config {
 	protected boolean rebind = true;
 	protected boolean summary = false;
 	protected boolean stdin = false;
+	protected boolean elinkNoTransmit = false;
 
 	protected int enquireLinkPeriod = DEFAULT_ELINK_PERIOD;
 	protected int rebindPeriod = DEFAULT_REBIND_PERIOD;
@@ -165,6 +166,14 @@ public class Config {
 		this.port = port;
 	}
 
+	public boolean isElinkNoTransmit() {
+		return elinkNoTransmit;
+	}
+
+	public void setElinkNoTransmit(boolean elinkNoTransmit) {
+		this.elinkNoTransmit = elinkNoTransmit;
+	}
+	
 	@Override
 	public String toString(){
 		return

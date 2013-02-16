@@ -117,7 +117,9 @@ public class Client extends AsyncTaskImpl{
 		logger.trace("Start working");
 
 		if (!config.isStdin()) {
-			messageQueue.add(new Message("sadsada"));
+			for (int i=0;i<10;i++) {
+				messageQueue.add(new Message("sadsada"));
+			}
 		}
 		
 		if (

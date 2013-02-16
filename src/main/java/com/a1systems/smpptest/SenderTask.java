@@ -69,6 +69,9 @@ class SenderTask extends AsyncTaskImpl implements Runnable{
 				
 				try {
 					session.submit(msg.getSubmitSm(), TimeUnit.SECONDS.toMillis(60));
+					
+					sessionTask.packetSent();
+					
 				} catch (RecoverablePduException ex) {
 					Logger.getLogger(SenderTask.class.getName()).log(Level.SEVERE, null, ex);
 				} catch (UnrecoverablePduException ex) {
