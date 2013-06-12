@@ -1,203 +1,156 @@
 package com.a1systems.smpptest;
 
+import com.a1systems.smpptest.config.Config;
+import com.cloudhopper.commons.charset.CharsetUtil;
+import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.smpp.SmppBindType;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import com.cloudhopper.smpp.SmppSession;
+import com.cloudhopper.smpp.SmppSessionConfiguration;
+import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.pdu.SubmitSm;
+import com.cloudhopper.smpp.type.Address;
+import com.cloudhopper.smpp.type.RecoverablePduException;
+import com.cloudhopper.smpp.type.SmppBindException;
+import com.cloudhopper.smpp.type.SmppChannelException;
+import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
+import com.cloudhopper.smpp.type.SmppTimeoutException;
+import com.cloudhopper.smpp.type.UnrecoverablePduException;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 public class App {
 
-	protected String host;
-	protected int port;
-	protected String systemid;
-	protected String password;
-	protected ServiceMonitor monitor = new ServiceMonitor();
-
-	public static void main(String[] args) {
+	protected ExpressionParser parser;
+	
+	public static Logger log = LoggerFactory.getLogger(App.class);
+	
+	public static void main(String[] args) throws SmppInvalidArgumentException {
 		new App().run(args);
 	}
 
-	public void run(String[] args) {
-		// ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("spring/appcontext.xml");
-
-		CommandLineParser parser = new GnuParser();
-		try {
-			Options options = getOptions();
-
-			CommandLine line = parser.parse(options, args);
-
-			if (line.hasOption(Config.OPT_HELP)) {
-				HelpFormatter hf = new HelpFormatter();
-
-				hf.setWidth(80);
-
-				hf.printHelp("smpptest <options> (<ton:npi:abonent> <ton:npi:sender> <text>|<hex>)", options);
-			} else if (line.hasOption(Config.OPT_EXAMPLE)) {
-				StringBuilder sb = new StringBuilder();
-
-				sb.append("TON:NPI:destinattion_addr ");
-				sb.append("TON:NPI:source_addr ");
-				sb.append("text ");
-				sb.append("dcs=0x08 ");
-				sb.append("esm_class=0x40 ");
-				sb.append("protocol_id=0x00 ");
-
-				sb.append("TLV:id:value ");
-				sb.append("TLV:0x2485:\"4584 758\" ");
-
-				System.out.println(sb.toString());
-			} else {
-				Config config = validate(line);
-
-				Client client = new Client(config);
-				ShutdownHook shutdownHook = new ShutdownHook(client);
-
-				Runtime.getRuntime().addShutdownHook(shutdownHook);
-
-				client.run(line);
-
-				//Runtime.getRuntime().addShutdownHook(shutdownHook);
-			}
-		} catch (ParseException exp) {
-			// oops, something went wrong
-			System.err.println("Parsing failed.  Reason: " + exp.getMessage());
-		}
-	}
-
-	private static Options getOptions() {
-		Options options = new Options();
-
-		options.addOption(new Option(Config.OPT_HELP, "Show usage."));
-		options.addOption(new Option(Config.OPT_RECEIVER, "Use receiver."));
-		options.addOption(new Option(Config.OPT_TRANSMITTER, "Use transmitter."));
-		options.addOption(new Option(Config.OPT_TRANSCEIVER, "Use transceiver."));
-
-		options.addOption(Config.OPT_HOST, true, "Set host:port for connection.");
-		options.addOption(Config.OPT_SYSTEM_ID, true, "Set systemid for connection.");
-		options.addOption(Config.OPT_PASSWORD, true, "Set password for connection.");
-
-		options.addOption(Config.OPT_HEX, false, "Use hex string as packet body.");
-		options.addOption(Config.OPT_HEXRAW, false, "Use hex string as packet.");
-		//options.addOption("nodlr", false, "Do not accept deliver_sm.");
-
-		options.addOption(Config.OPT_SPEED, true, "Set speed in sms/sec. Default:"+Config.DEFAULT_SPEED);
-		options.addOption(Config.OPT_WAIT, false, "Do not exit after sending all messages.");
-		options.addOption(Config.OPT_NO_REBIND, false, "Do not rebind on error or connection closed.");
-		options.addOption(Config.OPT_SUMMARY, false, "Print summary on exit.");
-
-		options.addOption(Config.OPT_SHORT_VERBOSE, Config.OPT_LONG_VERBOSE, false, "Verbose logging.");
-
-		options.addOption(Config.OPT_ENQUIRE_LINK_PERIOD, true, "Set enquire link period in seconds.Default:"+Config.DEFAULT_ELINK_PERIOD);
-		options.addOption(Config.OPT_ENQUIRE_LINK_ON_NO_TRANSMIT, false, "Send enquire link only if there are no messages.");
-		options.addOption(Config.OPT_REBIND_PERIOD, true, "Set rebind period in seconds.Default:"+Config.DEFAULT_REBIND_PERIOD);
-
-		/*
-		options.addOption(Config.OPT_SMPP_ESM_CLASS, true, "Set esm_class. (Not currently supported)");
-		options.addOption(Config.OPT_SMPP_PROTOCOL_ID, true, "Set protocol_id. (Not currently supported)");
-		*/
-
-		options.addOption(Config.OPT_EXAMPLE, false, "Print example string with all params. (Not currently supported)");
-
-		options.addOption(Config.OPT_STDIN, false, "Use STDIN instead of command line params. This option will apply -wait by default.");
-		options.addOption(Config.OPT_SUBTOTAL_PERIOD, true, "Set period in seconds for subtotal summary. Default: "+Config.DEFAULT_SUBTOTAL_PERIOD);
-
-		return options;
-	}
-
-	private Config validate(CommandLine line) {
-		Config config = new Config();
-
-		if (!line.hasOption(Config.OPT_HOST)) {
-			throw new IllegalArgumentException("You have to specify host");
-		}
-
-		String[] parts = line.getOptionValue(Config.OPT_HOST).split(":");
-
-		if (parts.length != 2 ) {
-			throw new IllegalArgumentException("You have to specify host in format host:port.");
-		}
-
-		config.setHost(parts[0]);
-		config.setPort(Integer.parseInt(parts[1]));
-
-		int connectionTypeCount = 0;
-		connectionTypeCount += line.hasOption(Config.OPT_RECEIVER) ? 1 : 0;
-		connectionTypeCount += line.hasOption(Config.OPT_TRANSCEIVER) ? 1 : 0;
-		connectionTypeCount += line.hasOption(Config.OPT_TRANSMITTER) ? 1 : 0;
-
-		if (
-			connectionTypeCount > 1
-			|| connectionTypeCount == 0
-		) {
-			throw new IllegalArgumentException("You have to specify one connection type.");
-		}
-
-		if (line.hasOption(Config.OPT_RECEIVER)) {
-			config.setBindType(SmppBindType.RECEIVER);
-		}
-
-		if (line.hasOption(Config.OPT_TRANSMITTER)) {
-			config.setBindType(SmppBindType.TRANSMITTER);
-		}
-
-		if (line.hasOption(Config.OPT_TRANSCEIVER)) {
-			config.setBindType(SmppBindType.TRANSCEIVER);
-		}
-
-		if (!line.hasOption(Config.OPT_SYSTEM_ID)) {
-			throw new IllegalArgumentException("You have to specify system id.");
-		}
-
-		config.setSystemId(line.getOptionValue(Config.OPT_SYSTEM_ID));
-
-		if (!line.hasOption(Config.OPT_PASSWORD)) {
-			throw new IllegalArgumentException("You have to specify password.");
-		}
-
-		config.setPassword(line.getOptionValue(Config.OPT_PASSWORD));
-
-		config.setHex(line.hasOption(Config.OPT_HEX));
-
-		config.setExitOnDone(!line.hasOption(Config.OPT_WAIT));
-
-		if (line.hasOption(Config.OPT_ENQUIRE_LINK_PERIOD)) {
-			String elinkStr = line.getOptionValue(Config.OPT_ENQUIRE_LINK_PERIOD);
-
-			int period = Integer.parseInt(elinkStr);
-
-			config.setEnquireLinkPeriod(period);
-		}
-
-		if (line.hasOption(Config.OPT_REBIND_PERIOD)) {
-			String rebindStr = line.getOptionValue(Config.OPT_REBIND_PERIOD);
-
-			int period = Integer.parseInt(rebindStr);
-
-			config.setRebindPeriod(period);
-		}
-
-		if (line.hasOption(Config.OPT_SPEED)) {
-			String speedStr = line.getOptionValue(Config.OPT_SPEED);
-
-			int speed = Integer.parseInt(speedStr);
-
-			config.setSpeed(speed);
-		}
-
-		config.setVerboseLogging(line.hasOption(Config.OPT_SHORT_VERBOSE));
-
-		config.setRebind(!line.hasOption(Config.OPT_NO_REBIND));
-
-		config.setSummary(line.hasOption(Config.OPT_SUMMARY));
-
-		config.setStdin(line.hasOption(Config.OPT_STDIN));
-
-		config.setElinkNoTransmit(line.hasOption(Config.OPT_ENQUIRE_LINK_ON_NO_TRANSMIT));
+	public void run(String[] args) throws SmppInvalidArgumentException {
+		Config cfg = new Config();
 		
-		return config;
+		CmdLineParser parser = new CmdLineParser(cfg);
+		
+		try {
+			parser.parseArgument(args);
+		} catch (CmdLineException e) {
+			parser.printUsage(System.out);
+			
+			log.error("Command line exception {}", e);
+			
+			System.exit(1);
+		}
+		
+		this.parser = new SpelExpressionParser();
+		
+		runApplication(cfg);
+	}
+	
+	public void runApplication(Config cfg) throws SmppInvalidArgumentException {
+		DefaultSmppClient smppClient = new DefaultSmppClient();
+		
+		SmppSessionConfiguration sessionConfig;
+		
+		sessionConfig = 
+			new SmppSessionConfiguration(
+				SmppBindType.TRANSCEIVER, 
+				cfg.getSystemId(), 
+				cfg.getPassword()
+			);
+		
+		sessionConfig.setHost("127.0.0.1");
+		sessionConfig.setPort(2775);
+		
+		try {
+			SmppSession session = smppClient.bind(sessionConfig);
+			
+			SubmitSm sm = new SubmitSm();
+			
+			ExpressionParser parser = new SpelExpressionParser();
+			
+			sm.setShortMessage(parseString(cfg.getArguments().get(2)));
+			sm.setDestAddress(parseSmppAddress(cfg.getArguments().get(0)));
+			sm.setSourceAddress(parseSmppAddress(cfg.getArguments().get(1)));
+	
+				
+			Object res = spelParse(cfg.getArguments().get(3), Byte.class);
+			
+			log.debug("{}", res.getClass().getName());
+			
+			session.submit(sm, TimeUnit.SECONDS.toMillis(60));
+			
+			TimeUnit.SECONDS.sleep(10);
+			
+			log.info("Bye!");
+			
+			session.close();
+			session.destroy();
+			
+			smppClient.destroy();
+			
+		} catch (SmppTimeoutException ex) {
+			log.error("{}", ex);
+		} catch (SmppChannelException ex) {
+			log.error("{}", ex);
+		} catch (SmppBindException ex) {
+			log.error("{}", ex);
+		} catch (UnrecoverablePduException ex) {
+			log.error("{}", ex);
+		} catch (InterruptedException ex) {
+			log.error("{}", ex);
+		} catch (RecoverablePduException ex) {
+			log.error("{}", ex);
+		}
+	}
+	
+	protected byte[] parseString(String str) {
+		if (str.toLowerCase().matches("^(gsm7|gsm8|ucs-2|hex):.*$")) {
+			String[] parts = str.split(":", 2);
+			
+			if ("hex".equals(parts[0].toLowerCase())) {
+				return HexUtil.toByteArray(parts[1]);
+			} else {
+				String chartset = parts[0].toUpperCase();
+				String text = (String)spelParse("'"+parts[1]+"'");
+
+				return CharsetUtil.encode(text, chartset);
+			}
+		} else {
+			throw new IllegalArgumentException("Wrong text format");
+		}
+	}
+	
+	protected Address parseSmppAddress(String str) {
+		if (str.matches("^[xXa-fA-F0-9]{1,4}:[xXa-fA-F0-9]{1,4}:.{1,15}$")) {
+			String[] parts = str.split(":",3);
+			
+			Address a = new Address();
+			
+			a.setTon((byte)spelParse(parts[0], Byte.class));
+			a.setNpi((byte)spelParse(parts[1], Byte.class));
+			
+			a.setAddress(parts[2]);
+			
+			return a;
+		} else {
+			throw new IllegalArgumentException("String "+str+" has no format digit:digit:address");
+		}
+	}
+	
+	protected Object spelParse(String exp) {
+		return parser.parseExpression(exp).getValue();
+	}
+	
+	protected Object spelParse(String exp, Class resultClass) {
+		return resultClass.cast(parser.parseExpression(exp).getValue(resultClass));
 	}
 }
