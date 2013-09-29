@@ -1,4 +1,4 @@
-# Defcode recognizer with rosvyaz import tool
+# Defcode recognizer with RosSvyaz import tool
 
 This tool is implemented to recognize mobile numbers with defcode base (in CSV-file).
 
@@ -46,7 +46,7 @@ or
 
 if no range found
 
-## Creating CSV-file with defcodes for Russin mobile operators
+## Creating CSV-file with defcodes for Russian mobile operators
 
 There is a web-page with all ranges for Russian mobile cellular operators: http://www.rossvyaz.ru/docs/articles/DEF-9x.html
 
