@@ -1,0 +1,54 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>defcode_recognizer</groupId>
+	<artifactId>defcode_recognizer</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>defcode_recognizer</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!-- plugin properties -->
+		<maven.compiler.plugin>3.0</maven.compiler.plugin>
+		<maven.compiler.plugin.source>1.6</maven.compiler.plugin.source>
+		<maven.compiler.plugin.target>1.6</maven.compiler.plugin.target>
+		<maven.jar.plugin.version>2.4</maven.jar.plugin.version>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven.compiler.plugin}</version>
+				<configuration>
+					<source>${maven.compiler.plugin.source}</source>
+					<target>${maven.compiler.plugin.target}</target>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<addMavenDescriptor>false</addMavenDescriptor>
+						<compress>true</compress>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>libs/</classpathPrefix>
+							<mainClass>defcode_recognizer.Defcode_recognizer</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<version>${maven.jar.plugin.version}</version>
+			</plugin>
+
+		</plugins>
+	</build>
+
+</project>
