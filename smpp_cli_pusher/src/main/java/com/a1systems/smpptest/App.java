@@ -4,7 +4,6 @@ import com.a1systems.smpptest.config.Config;
 import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.commons.gsm.GsmUtil;
 import com.cloudhopper.commons.util.HexUtil;
-import com.cloudhopper.commons.util.StringUtil;
 import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
@@ -24,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.util.StringUtils;
 
 public class App {
 
@@ -44,9 +42,10 @@ public class App {
 		try {
 			parser.parseArgument(args);
 		} catch (CmdLineException e) {
-			parser.printUsage(System.out);
+			System.out.println("SMPP sender. Note: currently uses only BIND_TRANSCEIVER. For testing purposes only.");
+			System.out.println("Example: smpptester -h 127.0.0.1:2775 -u test -p test 1:1:791231234567 5:0:test 'gsm7:test msg'");
 
-			log.error("Command line exception {}", e);
+			parser.printUsage(System.out);
 
 			System.exit(1);
 		}
@@ -68,8 +67,10 @@ public class App {
 				cfg.getPassword()
 			);
 
-		sessionConfig.setHost("127.0.0.1");
-		sessionConfig.setPort(2775);
+		String []hostPort = cfg.getHostPort().split(":");
+
+		sessionConfig.setHost(hostPort[0]);
+		sessionConfig.setPort(Integer.parseInt(hostPort[1]));
 
 		try {
 			SmppSession session = smppClient.bind(sessionConfig);
@@ -84,24 +85,22 @@ public class App {
 
 				byte[][] msgParts = GsmUtil.createConcatenatedBinaryShortMessages(encodedString, (byte) 11);
 
-				log.debug(StringUtil.getAsciiString(encodedString));
-
 				for (byte[] msgPart : msgParts) {
 
 					SubmitSm sm = new SubmitSm();
 
+					sm.setRegisteredDelivery((byte)1);
+
 					sm.setDestAddress(parseSmppAddress(cfg.getArguments().get(0)));
 					sm.setSourceAddress(parseSmppAddress(cfg.getArguments().get(1)));
-
-					log.debug("{}	",msgPart.length);
-
-					log.debug(StringUtil.getAsciiString(msgPart));
 
 					sm.setShortMessage(msgPart);
 					session.submit(sm, TimeUnit.SECONDS.toMillis(60));
 				}
 			} else {
 				SubmitSm sm = new SubmitSm();
+
+				sm.setRegisteredDelivery((byte)1);
 
 				sm.setDestAddress(parseSmppAddress(cfg.getArguments().get(0)));
 				sm.setSourceAddress(parseSmppAddress(cfg.getArguments().get(1)));

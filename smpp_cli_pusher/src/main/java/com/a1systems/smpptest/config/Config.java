@@ -14,10 +14,10 @@ public class Config {
 	@Option(name = "-p", usage = "Set password")
 	protected String password;
 
-	@Option(name = "-tc", usage="Use transceiver bind mode")
+	@Option(name = "-tc", usage="Use transceiver bind mode (NOT CURRENTLY SUPPORTED)")
 	protected boolean transceiver;
 
-	@Option(name = "-stdin", usage="Read data from STDIN")
+	@Option(name = "-stdin", usage="Read data from STDIN (NOT CURRENTLY SUPPORTED)")
 	protected boolean stdin;
 
 	@Argument
