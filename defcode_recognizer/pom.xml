@@ -13,7 +13,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- plugin properties -->
-		<maven.compiler.plugin>3.0</maven.compiler.plugin>
+		<maven.compiler.plugin>3.1</maven.compiler.plugin>
 		<maven.compiler.plugin.source>1.6</maven.compiler.plugin.source>
 		<maven.compiler.plugin.target>1.6</maven.compiler.plugin.target>
 		<maven.jar.plugin.version>2.4</maven.jar.plugin.version>
@@ -47,6 +47,25 @@
 				</configuration>
 				<version>${maven.jar.plugin.version}</version>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<descriptors>
+						<descriptor>src/main/assembly/bin.xml</descriptor>
+					</descriptors>
+				</configuration>
+			</plugin>	
 
 		</plugins>
 	</build>
