@@ -5,20 +5,20 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 
 public class Config {
-	@Option(name = "-wait", usage = "Do not exit after work done")
-	protected boolean wait;
-	
 	@Option(name = "-h", usage = "Set host:port for connection")
 	protected String hostPort;
-	
+
 	@Option(name = "-u", usage = "Set system id")
 	protected String systemId;
-	
+
 	@Option(name = "-p", usage = "Set password")
 	protected String password;
 
 	@Option(name = "-tc", usage="Use transceiver bind mode")
 	protected boolean transceiver;
+
+	@Option(name = "-stdin", usage="Read data from STDIN")
+	protected boolean stdin;
 
 	@Argument
 	protected List<String> arguments;
@@ -30,21 +30,13 @@ public class Config {
 	public void setArguments(List<String> arguments) {
 		this.arguments = arguments;
 	}
-	
+
 	public boolean isTransceiver() {
 		return transceiver;
 	}
 
 	public void setTransceiver(boolean transceiver) {
 		this.transceiver = transceiver;
-	}
-	
-	public boolean isWait() {
-		return wait;
-	}
-
-	public void setWait(boolean wait) {
-		this.wait = wait;
 	}
 
 	public String getHostPort() {
@@ -70,4 +62,13 @@ public class Config {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+
+	public boolean isStdin() {
+		return stdin;
+	}
+
+	public void setStdin(boolean stdin) {
+		this.stdin = stdin;
+	}
+
 }
