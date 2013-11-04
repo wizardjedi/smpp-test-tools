@@ -10,6 +10,7 @@ import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.type.Address;
+import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.SmppBindException;
 import com.cloudhopper.smpp.type.SmppChannelException;
@@ -69,11 +70,19 @@ public class App {
 
 		String []hostPort = cfg.getHostPort().split(":");
 
+		sessionConfig.setName("DefaultConfig");
 		sessionConfig.setHost(hostPort[0]);
 		sessionConfig.setPort(Integer.parseInt(hostPort[1]));
 
+		LoggingOptions lo = new LoggingOptions();
+
+		lo.setLogPdu(true);
+		lo.setLogBytes(true);
+
+		sessionConfig.setLoggingOptions(lo);
+
 		try {
-			SmppSession session = smppClient.bind(sessionConfig);
+			SmppSession session = smppClient.bind(sessionConfig, new SmppSessionHandler());
 
 			ExpressionParser parser = new SpelExpressionParser();
 
