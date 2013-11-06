@@ -5,6 +5,7 @@ import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.commons.gsm.GsmUtil;
 import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.smpp.SmppBindType;
+import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
@@ -88,6 +89,8 @@ public class App {
 
 			byte[] encodedString = parseString(cfg.getArguments().get(2));
 
+			byte encoding = (byte)Integer.parseInt(cfg.getArguments().get(3));
+
 			if (encodedString.length > 140) {
 
 				int msgId = (int)Math.round(Math.random()*100);
@@ -103,6 +106,9 @@ public class App {
 					sm.setDestAddress(parseSmppAddress(cfg.getArguments().get(0)));
 					sm.setSourceAddress(parseSmppAddress(cfg.getArguments().get(1)));
 
+					sm.setEsmClass(SmppConstants.ESM_CLASS_UDHI_MASK);
+
+					sm.setDataCoding(encoding);
 					sm.setShortMessage(msgPart);
 					session.submit(sm, TimeUnit.SECONDS.toMillis(60));
 				}
@@ -115,6 +121,7 @@ public class App {
 				sm.setSourceAddress(parseSmppAddress(cfg.getArguments().get(1)));
 
 				sm.setShortMessage(encodedString);
+				sm.setDataCoding(encoding);
 				session.submit(sm, TimeUnit.SECONDS.toMillis(60));
 			}
 			TimeUnit.SECONDS.sleep(10);
