@@ -2,12 +2,13 @@ package defcode_recognizer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.TreeSet;
 
 public class FindTask implements Runnable {
 	protected BufferedReader br;
-	protected RangeTreeNode tree;
+	protected TreeSet<Range> tree;
 
-	public FindTask(BufferedReader br, RangeTreeNode tree) {
+	public FindTask(BufferedReader br, TreeSet<Range> tree) {
 		this.br = br;
 		this.tree = tree;
 	}
@@ -34,7 +35,7 @@ public class FindTask implements Runnable {
 		long value = Long.parseLong(parts[0]);
 
 		try {
-			Range r = tree.find(value);
+			Range r = tree.ceiling(new Range(value, value, payload));
 
 			System.out.println(value+";"+r.getLeft()+";"+r.getRight()+";"+r.getPayload().toString()+";"+payload);
 		} catch (Exception e) {

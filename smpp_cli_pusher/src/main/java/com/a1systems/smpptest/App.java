@@ -124,14 +124,8 @@ public class App {
 				sm.setDataCoding(encoding);
 				session.submit(sm, TimeUnit.SECONDS.toMillis(60));
 			}
-			TimeUnit.SECONDS.sleep(10);
 
-			log.info("Bye!");
-
-			session.close();
-			session.destroy();
-
-			smppClient.destroy();
+			Runtime.getRuntime().addShutdownHook(new ShutdownHook(session, smppClient));
 
 		} catch (SmppTimeoutException ex) {
 			log.error("{}", ex);

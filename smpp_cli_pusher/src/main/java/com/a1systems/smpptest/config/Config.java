@@ -20,11 +20,33 @@ public class Config {
 	@Option(name = "-stdin", usage="Read data from STDIN (NOT CURRENTLY SUPPORTED)")
 	protected boolean stdin;
 
+	@Option(name = "-example", usage = "Print examples of packets. (NOT CURRENTLY SUPPORTED)")
+	protected boolean example;
+
+	@Option(name = "-exec", usage = "Exec command on packet receive. (NOT CURRENTLY SUPPORTED)")
+	protected boolean exec;
+
 	@Argument
 	protected List<String> arguments;
 
 	public List<String> getArguments() {
 		return arguments;
+	}
+
+	public boolean isExample() {
+		return example;
+	}
+
+	public void setExample(boolean example) {
+		this.example = example;
+	}
+
+	public boolean isExec() {
+		return exec;
+	}
+
+	public void setExec(boolean exec) {
+		this.exec = exec;
 	}
 
 	public void setArguments(List<String> arguments) {

@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -11,7 +12,7 @@ class Application {
 	protected String defCodeBasePath;
 	protected int threads;
 	protected String numbersPath;
-	protected RangeTreeNode tree;
+	protected TreeSet<Range> tree;
 	protected ExecutorService pool;
 
 	public Application(String defCodeBasePath, int threads, String numbersPath) {
@@ -22,6 +23,8 @@ class Application {
 
 	public void run() {
 		pool = Executors.newFixedThreadPool(threads);
+
+		tree = new TreeSet<Range>(new RangeComparator());
 
 		readCsvBase();
 
@@ -58,11 +61,7 @@ class Application {
 
 		Range r = new Range(left, right, payLoad);
 
-		if (tree == null) {
-			tree = new RangeTreeNode(r);
-		} else {
-			tree.add(r);
-		}
+		tree.add(r);
 	}
 
 	private void readAndFind() {
@@ -76,7 +75,7 @@ class Application {
 			pool.shutdown();
 
 			while (!pool.isTerminated()) {
-				
+
 			}
 
 			br.close();
