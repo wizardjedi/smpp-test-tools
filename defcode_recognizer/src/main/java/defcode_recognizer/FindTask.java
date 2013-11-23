@@ -8,9 +8,13 @@ public class FindTask implements Runnable {
 	protected BufferedReader br;
 	protected TreeSet<Range> tree;
 
+	private Range range;
+
 	public FindTask(BufferedReader br, TreeSet<Range> tree) {
 		this.br = br;
 		this.tree = tree;
+
+		this.range = new Range(0, 0, null);
 	}
 
 	@Override
@@ -34,8 +38,12 @@ public class FindTask implements Runnable {
 
 		long value = Long.parseLong(parts[0]);
 
+		this.range.setLeft(value);
+		this.range.setRight(value);
+		this.range.setPayload(payload);
+
 		try {
-			Range r = tree.ceiling(new Range(value, value, payload));
+			Range r = tree.ceiling(this.range);
 
 			System.out.println(value+";"+r.getLeft()+";"+r.getRight()+";"+r.getPayload().toString()+";"+payload);
 		} catch (Exception e) {
