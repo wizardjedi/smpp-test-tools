@@ -2,9 +2,7 @@ package defcode_recognizer;
 
 import java.util.Comparator;
 
-
-
-class RangeComparator implements Comparator<Range> {
+public class RangeComparator implements Comparator<Range> {
 
 	@Override
 	public int compare(Range r1, Range r2) {
