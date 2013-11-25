@@ -26,6 +26,12 @@ class Application {
 			while ((line = bis.readLine()) != null) {
 				processLine(line);
 			}
+
+			System.out.println("-----");
+
+			for (Range r:tree) {
+				System.out.println(r.toString());
+			}
 		} catch (FileNotFoundException ex) {
 			System.err.println(ex.toString());
 		} catch (IOException ex) {
@@ -43,9 +49,24 @@ class Application {
 		if (r == null) {
 			tree.add(range);
 		} else {
-			System.out.println(r.toString()+":"+range.toString());
+			processRange(tree, r, range);
+		}
+
+	}
+
+
+	protected void processRange(TreeSet<Range> tree, Range treeRange, Range newRange) {
+		if (
+			treeRange.getLeft() >= newRange.getRight()
+		) {
+			tree.add(newRange);
+		} else if (
+			treeRange.getRight() >= newRange.getLeft()
+		) {
+			tree.add(newRange);
+		} else {
+			System.out.println("Oops"+treeRange.toString()+newRange.toString());
 		}
 	}
 
-	
 }
