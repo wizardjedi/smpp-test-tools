@@ -42,12 +42,23 @@ public class FindTask implements Runnable {
 		this.range.setRight(value);
 		this.range.setPayload(payload);
 
-		try {
-			Range r = tree.ceiling(this.range);
+		Range r = null;
 
-			System.out.println(value+";"+r.getLeft()+";"+r.getRight()+";"+r.getPayload().toString()+";"+payload);
+		try {
+			r = tree.ceiling(this.range);
 		} catch (Exception e) {
+			/* */
+		}
+
+		if (
+			r != null
+			&& r.getLeft() <= this.range.getLeft()
+			&& r.getRight() >= this.range.getRight()
+		) {
+			System.out.println(value+";"+r.getLeft()+";"+r.getRight()+";"+r.getPayload().toString()+";"+payload);
+		} else {
 			System.out.println(value+";;;;"+payload);
 		}
+
 	}
 }
