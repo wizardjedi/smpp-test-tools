@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.a1systems</groupId>
+		<artifactId>smpp-test-tools</artifactId>
+		<version>1.0-SNAPSHOT</version>
+	</parent>
+	<groupId>com.a1systems</groupId>
+	<artifactId>range_slicer</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<name>range_slicer</name>
+	<url>http://maven.apache.org</url>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<compile.plugin.version>2.3.1</compile.plugin.version>
+		<compile.java.version>1.7</compile.java.version>
+		<maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
+		<maven.jar.plugin.version>2.4</maven.jar.plugin.version>
+	</properties>
+
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>3.8.1</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.a1systems</groupId>
+			<artifactId>defcode_recognizer</artifactId>
+			<version>1.0-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<addMavenDescriptor>false</addMavenDescriptor>
+						<compress>true</compress>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>libs/</classpathPrefix>
+							<mainClass>com.a1systems.range_slicer.App</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<version>${maven.jar.plugin.version}</version>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/libs</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+				<version>${maven.dependency.plugin.version}</version>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${compile.plugin.version}</version>
+				<configuration>
+					<source>${compile.java.version}</source>
+					<target>${compile.java.version}</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
