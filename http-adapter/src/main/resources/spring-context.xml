@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:p="http://www.springframework.org/schema/p"
+	   xmlns:c="http://www.springframework.org/schema/c"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:task="http://www.springframework.org/schema/task"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns:util="http://www.springframework.org/schema/util"
+	   xmlns:mvc="http://www.springframework.org/schema/mvc"
+	   xmlns:security="http://www.springframework.org/schema/security"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/task
+			http://www.springframework.org/schema/task/spring-task.xsd
+			http://www.springframework.org/schema/tx
+			http://www.springframework.org/schema/tx/spring-tx.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/util
+			http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc
+			http://www.springframework.org/schema/mvc/spring-mvc.xsd
+			http://www.springframework.org/schema/security
+			http://www.springframework.org/schema/security/spring-security.xsd
+">
+    <bean id="application" class="com.a1systems.http.adapter.Application" />
+
+    <context:component-scan base-package="com.a1systems.http.adapter" />
+
+	<bean id="server" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
+		<constructor-arg name="port" value="8182" />
+        <property name="handler">
+            <bean class="org.eclipse.jetty.servlet.ServletContextHandler">
+                <property name="contextPath" value="/" />
+                <property name="servletHandler">
+                    <bean class="org.eclipse.jetty.servlet.ServletHandler">
+                        <property name="servlets">
+                            <list>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="status">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.http.adapter.servlet.StatusServlet" />
+                                    </constructor-arg>
+                                </bean>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="send">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.http.adapter.servlet.SendServlet" />
+                                    </constructor-arg>
+                                </bean>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="deliveryStatus">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.http.adapter.servlet.DeliveryStatusServlet" />
+                                    </constructor-arg>
+                                </bean>
+                            </list>
+                        </property>
+                        <property name="servletMappings">
+                            <list>
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:default="true" p:pathSpec="/status" p:servletName="status"  />
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:pathSpec="/send" p:servletName="send"  />
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:pathSpec="/delivery" p:servletName="deliveryStatus"  />
+                            </list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+		</property>
+	</bean>
+</beans>
