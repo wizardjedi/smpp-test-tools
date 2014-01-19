@@ -26,6 +26,8 @@
 
         <jetty.version>9.1.1.v20140108</jetty.version>
 
+        <guava.version>16.0</guava.version>
+
         <mcp.source.version>1.7</mcp.source.version>
         <mcp.target.version>1.7</mcp.target.version>
         <mcp.version>3.1</mcp.version>
@@ -172,6 +174,12 @@
             <version>${spring.version}</version>
         </dependency>
 
+        <!-- Google Guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
 
     </dependencies>
 

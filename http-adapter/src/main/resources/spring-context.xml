@@ -24,10 +24,9 @@
 			http://www.springframework.org/schema/security
 			http://www.springframework.org/schema/security/spring-security.xsd
 ">
-    <bean id="asyncTaskPool" class="java.util.concurrent.Executors" factory-method="newScheduledThreadPool">
+    <bean id="asyncTaskPool" class="java.util.concurrent.Executors" factory-method="newScheduledThreadPool" destroy-method="shutdown">
         <constructor-arg value="5" />
     </bean>
-
 
     <bean id="application" class="com.a1systems.http.adapter.Application">
         <property name="asyncTaskPool" ref="asyncTaskPool" />

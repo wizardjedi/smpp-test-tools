@@ -57,7 +57,11 @@ public class SmppSessionHandler extends DefaultSmppSessionHandler {
 
             SubmitSmResp ssmr = (SubmitSmResp) pduAsyncResponse.getResponse();
 
-            application.setSmscId(ssmr.getMessageId(), part);
+            log.error("{}", ssmr.getCommandStatus());
+
+            if (ssmr.getCommandStatus() == 0) {
+                application.setSmscId(ssmr.getMessageId(), part);
+            }
         }
     }
 

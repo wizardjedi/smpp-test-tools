@@ -65,7 +65,7 @@ public class Message {
 
         byte[][] msgParts;
 
-        if (message.length() > 140) {
+        if (encodedText.length > 140) {
             Random random = new Random();
 
             msgParts = GsmUtil.createConcatenatedBinaryShortMessages(encodedText, (byte)12);
