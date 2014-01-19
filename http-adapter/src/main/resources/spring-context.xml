@@ -24,12 +24,58 @@
 			http://www.springframework.org/schema/security
 			http://www.springframework.org/schema/security/spring-security.xsd
 ">
-    <bean id="application" class="com.a1systems.http.adapter.Application" />
+    <bean id="asyncTaskPool" class="java.util.concurrent.Executors" factory-method="newScheduledThreadPool">
+        <constructor-arg value="5" />
+    </bean>
+
+
+    <bean id="application" class="com.a1systems.http.adapter.Application">
+        <property name="asyncTaskPool" ref="asyncTaskPool" />
+        <property name="smppLinks">
+            <map>
+                <entry key="link1" value-ref="link1" />
+            </map>
+        </property>
+    </bean>
+
+    <bean id="link1" class="com.a1systems.http.adapter.smpp.client.Client" init-method="start">
+        <constructor-arg>
+            <bean class="com.cloudhopper.smpp.SmppSessionConfiguration">
+                <property name="systemId" value="smppclient1" />
+                <property name="password" value="password" />
+                <property name="host" value="127.0.0.1" />
+                <property name="port" value="2775" />
+                <property name="windowSize" value="10000" />
+            </bean>
+        </constructor-arg>
+        <property name="elinkPeriod" value="30" />
+        <property name="sessionHandler">
+            <bean class="com.a1systems.http.adapter.smpp.SmppSessionHandler">
+                <constructor-arg ref="link1" />
+            </bean>
+        </property>
+
+    </bean>
 
     <context:component-scan base-package="com.a1systems.http.adapter" />
 
+    <bean id="jettyThreadPool" class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+        <property name="minThreads" value="10" />
+        <property name="maxThreads" value="100" />
+        <property name="idleTimeout" value="10000" />
+    </bean>
+
 	<bean id="server" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
-		<constructor-arg name="port" value="8182" />
+		<constructor-arg ref="jettyThreadPool"  />
+        <property name="connectors">
+            <list>
+                <bean class="org.eclipse.jetty.server.ServerConnector" >
+                    <constructor-arg ref="server" />
+                    <property name="port" value="8182" />
+                    <property name="acceptQueueSize" value="100" />
+                </bean>
+            </list>
+        </property>
         <property name="handler">
             <bean class="org.eclipse.jetty.servlet.ServletContextHandler">
                 <property name="contextPath" value="/" />

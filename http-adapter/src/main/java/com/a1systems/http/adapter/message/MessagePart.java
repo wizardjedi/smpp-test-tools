@@ -17,6 +17,17 @@ public class MessagePart {
     protected byte destinationTon;
     protected byte destinationNpi;
     protected Message message;
+    protected String smscId;
+    protected PartState state;
+    protected int tryCount = 0;
+
+    public String getSmscId() {
+        return smscId;
+    }
+
+    public void setSmscId(String smscId) {
+        this.smscId = smscId;
+    }
 
     public Message getMessage() {
         return message;
@@ -97,13 +108,17 @@ public class MessagePart {
         submitSm.setSourceAddress(new Address(sourceTon, sourceNpi, source));
         submitSm.setDestAddress(new Address(destinationTon, destinationNpi, destination));
 
+        submitSm.setRegisteredDelivery((byte)1);
+
+        submitSm.setReferenceObject(this);
+
         return submitSm;
     }
 
     @Override
     public String toString() {
         try {
-            return "MessagePart{" + "id=" + id + ", source=" + source + ", destination=" + destination + ", shortMessage=" + HexUtil.toHexString(shortMessage) + ", sourceTon=" + sourceTon + ", sourceNpi=" + sourceNpi + ", destinationTon=" + destinationTon + ", destinationNpi=" + destinationNpi + ", message.id=" + message.getId() + ", ssm["+this.createSubmitSm().toString()+"]" + '}';
+            return "MessagePart{" + "id=" + id + ", smscId=" + smscId + ", source=" + source + ", destination=" + destination + ", shortMessage=" + HexUtil.toHexString(shortMessage) + ", sourceTon=" + sourceTon + ", sourceNpi=" + sourceNpi + ", destinationTon=" + destinationTon + ", destinationNpi=" + destinationNpi + ", message.id=" + message.getId() + ", ssm["+this.createSubmitSm().toString()+"]" + '}';
         } catch (SmppInvalidArgumentException ex) {
             return ex.toString();
         }

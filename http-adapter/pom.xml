@@ -197,7 +197,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>libs/</classpathPrefix>
-                            <mainClass>com.a1systems.foradapter.App</mainClass>
+                            <mainClass>com.a1systems.http.adapter.App</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

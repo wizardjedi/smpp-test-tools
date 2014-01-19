@@ -22,11 +22,12 @@ public class SendServlet extends HttpServlet {
         String destination = req.getParameter("destination");
         String text = req.getParameter("text");
         String encoding = req.getParameter("encoding");
+        String link = req.getParameter("link");
 
 
         response.setContentType("text/html");
         response.setStatus(HttpServletResponse.SC_OK);
-        response.getWriter().println("Send"+this.application.sendMessage(source, destination, text, encoding));
+        response.getWriter().println("Send"+this.application.sendMessage(link, source, destination, text, encoding));
     }
 
     public Application getApplication() {

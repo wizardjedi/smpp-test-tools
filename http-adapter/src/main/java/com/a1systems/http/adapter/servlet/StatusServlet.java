@@ -16,7 +16,7 @@ public class StatusServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html");
         response.setStatus(HttpServletResponse.SC_OK);
-        response.getWriter().println("Status"+application.sendMessage("1", "2", "3", "UCS-2"));
+        response.getWriter().println("Status"+application.getMessageParts().keySet().toString()+application.getLinkIds().toString()+application.getMessages().keySet().toString());
     }
 
 }
