@@ -1,10 +1,13 @@
 package com.a1systems.http.adapter.smpp.client;
 
+import com.a1systems.http.adapter.message.MessagePart;
 import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.google.common.util.concurrent.RateLimiter;
+import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -12,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Client implements Runnable {
+public class Client {
 	public static final Logger log = LoggerFactory.getLogger(Client.class);
 
 	protected SmppSessionConfiguration cfg;
@@ -31,31 +34,19 @@ public class Client implements Runnable {
 	protected long rebindPeriod = 5;
 	protected long elinkPeriod = 5;
 
+    protected int speed = 30;
+    protected RateLimiter rateLimiter;
+
+    protected DelayQueue<MessagePart> queue;
+
 	public Client(SmppSessionConfiguration cfg) {
 		this.cfg = cfg;
 
         this.state = ClientState.IDLE;
 
 		this.timer = Executors.newScheduledThreadPool(2);
-	}
 
-	@Override
-	public void run() {
-		log.debug("Creating client");
-
-		this.state = ClientState.IDLE;
-
-		while (this.state != ClientState.STOPPING) {
-			try {
-				TimeUnit.MILLISECONDS.sleep(10);
-			} catch (InterruptedException ex) {
-				/* */
-			}
-		}
-
-		this.smppClient.destroy();
-
-		this.state = ClientState.STOPPED;
+        this.queue = new DelayQueue<MessagePart>();
 	}
 
 	public void start() {
@@ -63,8 +54,14 @@ public class Client implements Runnable {
 
 		this.smppClient = new DefaultSmppClient();
 
+        this.rateLimiter = RateLimiter.create(this.speed);
+
 		this.bind();
 	}
+
+    public MessagePart poll() {
+        return queue.poll();
+    }
 
 	private void runRebindTask() {
 		this.rebindTask = this.timer.scheduleAtFixedRate(new RebindTask(this), 0, getRebindPeriod(), TimeUnit.SECONDS);
@@ -151,6 +148,22 @@ public class Client implements Runnable {
 		this.smppClient = smppClient;
 	}
 
+    public int getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
+    }
+
+    public RateLimiter getRateLimiter() {
+        return rateLimiter;
+    }
+
+    public void setRateLimiter(RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
+    }
+
 	public SmppSessionConfiguration getCfg() {
 		return cfg;
 	}
@@ -174,6 +187,10 @@ public class Client implements Runnable {
 	public void setSession(SmppSession session) {
 		this.session = session;
 	}
+
+    public void addToQueue(MessagePart part) {
+        this.queue.add(part);
+    }
 
 
 }

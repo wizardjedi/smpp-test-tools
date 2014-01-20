@@ -28,12 +28,17 @@
         <constructor-arg value="5" />
     </bean>
 
-    <bean id="application" class="com.a1systems.http.adapter.Application">
+    <bean id="application" class="com.a1systems.http.adapter.Application" init-method="start">
         <property name="asyncTaskPool" ref="asyncTaskPool" />
         <property name="smppLinks">
             <map>
                 <entry key="link1" value-ref="link1" />
             </map>
+        </property>
+        <property name="sendPool">
+            <bean class="java.util.concurrent.Executors" factory-method="newFixedThreadPool" destroy-method="shutdown">
+                <constructor-arg value="10" />
+            </bean>
         </property>
     </bean>
 
@@ -47,6 +52,7 @@
                 <property name="windowSize" value="10000" />
             </bean>
         </constructor-arg>
+        <property name="speed" value="5" />
         <property name="elinkPeriod" value="30" />
         <property name="sessionHandler">
             <bean class="com.a1systems.http.adapter.smpp.SmppSessionHandler">
@@ -64,7 +70,7 @@
         <property name="idleTimeout" value="10000" />
     </bean>
 
-	<bean id="server" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
+	<bean id="server" depends-on="application" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
 		<constructor-arg ref="jettyThreadPool"  />
         <property name="connectors">
             <list>

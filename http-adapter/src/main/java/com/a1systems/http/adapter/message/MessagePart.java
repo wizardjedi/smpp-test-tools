@@ -4,10 +4,12 @@ import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MessagePart {
+public class MessagePart implements Delayed{
     protected Long id;
     protected String source;
     protected String destination;
@@ -122,5 +124,15 @@ public class MessagePart {
         } catch (SmppInvalidArgumentException ex) {
             return ex.toString();
         }
+    }
+
+    @Override
+    public long getDelay(TimeUnit unit) {
+        return -1;
+    }
+
+    @Override
+    public int compareTo(Delayed o) {
+        return -1;
     }
 }
