@@ -82,8 +82,8 @@ public class Message {
             part.setShortMessage(msgParts[i]);
 
             part.setDestination(this.destination);
-            part.setDestinationTon((byte)5);
-            part.setDestinationNpi((byte)0);
+            part.setDestinationTon((byte)1);
+            part.setDestinationNpi((byte)1);
 
             part.setSource(this.source);
             part.setSourceTon((byte)1);

@@ -10,6 +10,7 @@ import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
+import com.google.common.util.concurrent.RateLimiter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +45,10 @@ public class Application {
 
     protected List<Client> clients = new ArrayList<Client>();
 
+    protected RateLimiter inputLimiter;
+    
+    protected int inputSpeed = 100;
+    
     public Application() {
         this.sendPool = Executors.newFixedThreadPool(10);
 
@@ -51,6 +56,14 @@ public class Application {
         this.partIdGenerator = new IdGenerator(null, 10L);
     }
 
+    public RateLimiter getInputLimiter() {
+        return inputLimiter;
+    }
+
+    public void setInputLimiter(RateLimiter inputLimiter) {
+        this.inputLimiter = inputLimiter;
+    }
+    
     public ExecutorService getSendPool() {
         return sendPool;
     }
@@ -75,6 +88,14 @@ public class Application {
         this.smppLinks = smppLinks;
     }
 
+    public int getInputSpeed() {
+        return inputSpeed;
+    }
+
+    public void setInputSpeed(int inputSpeed) {
+        this.inputSpeed = inputSpeed;
+    }
+    
     public void start() {
         this.sendPool = Executors.newCachedThreadPool();
 
@@ -87,6 +108,8 @@ public class Application {
         for (Client client:this.smppLinks.values()) {
             this.clients.add(client);
         }
+        
+        this.inputLimiter = RateLimiter.create(this.inputSpeed);
     }
 
     public SessionHolder getMessagePart() {
@@ -110,21 +133,23 @@ public class Application {
     public String sendMessage(String link, String source, String destination, String message, String encoding) {
         Message msg = new Message(partIdGenerator, source, destination, message, encoding);
 
-        msg.setId(messageIdGenerator.generate());
+        if (this.inputLimiter.tryAcquire(msg.getParts().size())) {
+            msg.setId(messageIdGenerator.generate());
 
-        Client client = this.getSmppLinks().get(link);
+            Client client = this.getSmppLinks().get(link);
 
-        SmppSession session = client.getSession();
+            this.messages.put(msg.getId(), msg);
 
-        this.messages.put(msg.getId(), msg);
+            for (MessagePart part : msg.getParts()) {
+                this.messageParts.put(part.getId(), part);
 
-        for (MessagePart part : msg.getParts()) {
-            this.messageParts.put(part.getId(), part);
+                client.addToQueue(part);
+            }
 
-            client.addToQueue(part);
+            return msg.toString();
+        } else {
+            return "Too much requests try again later";
         }
-
-        return msg.toString();
     }
 
     public ConcurrentHashMap<Long, Message> getMessages() {
