@@ -55,6 +55,7 @@
         </constructor-arg>
         <property name="speed" value="5" />
         <property name="elinkPeriod" value="30" />
+        <property name="timer" ref="asyncTaskPool" />
         <property name="sessionHandler">
             <bean class="com.a1systems.http.adapter.smpp.SmppSessionHandler">
                 <constructor-arg ref="link1" />
@@ -118,4 +119,8 @@
             </bean>
 		</property>
 	</bean>
+        
+        
+        <bean id="jackson2ObjectMapperFactoryBean" class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+        </bean>
 </beans>
