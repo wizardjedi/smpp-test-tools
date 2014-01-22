@@ -1,6 +1,7 @@
 package com.a1systems.http.adapter.servlet;
 
 import com.a1systems.http.adapter.Application;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -15,6 +16,9 @@ public class SendServlet extends HttpServlet {
     @Autowired
     protected Application application;
 
+    @Autowired
+    protected ObjectMapper objectMapper;
+    
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
 
@@ -27,7 +31,7 @@ public class SendServlet extends HttpServlet {
 
         response.setContentType("text/html");
         response.setStatus(HttpServletResponse.SC_OK);
-        response.getWriter().println("Send"+this.application.sendMessage(link, source, destination, text, encoding));
+        response.getWriter().println(this.application.sendMessage(link, source, destination, text, encoding));
     }
 
     public Application getApplication() {

@@ -5,11 +5,8 @@ import com.a1systems.http.adapter.message.MessagePart;
 import com.a1systems.http.adapter.sender.SenderTask;
 import com.a1systems.http.adapter.sender.SessionHolder;
 import com.a1systems.http.adapter.smpp.client.Client;
-import com.cloudhopper.smpp.SmppSession;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppChannelException;
-import com.cloudhopper.smpp.type.SmppTimeoutException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.RateLimiter;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,11 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class Application {
     protected static final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -48,6 +44,9 @@ public class Application {
     protected RateLimiter inputLimiter;
     
     protected int inputSpeed = 100;
+    
+    @Autowired
+    protected ObjectMapper objectMapper;
     
     public Application() {
         this.sendPool = Executors.newFixedThreadPool(10);
@@ -130,7 +129,7 @@ public class Application {
         return null;
     }
 
-    public String sendMessage(String link, String source, String destination, String message, String encoding) {
+    public String sendMessage(String link, String source, String destination, String message, String encoding) throws JsonProcessingException {
         Message msg = new Message(partIdGenerator, source, destination, message, encoding);
 
         if (this.inputLimiter.tryAcquire(msg.getParts().size())) {
@@ -146,7 +145,7 @@ public class Application {
                 client.addToQueue(part);
             }
 
-            return msg.toString();
+            return objectMapper.writeValueAsString(msg);
         } else {
             return "Too much requests try again later";
         }

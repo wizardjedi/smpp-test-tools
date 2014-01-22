@@ -3,6 +3,7 @@ package com.a1systems.http.adapter.message;
 import com.a1systems.http.adapter.IdGenerator;
 import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.commons.gsm.GsmUtil;
+import com.cloudhopper.commons.util.RandomUtil;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -56,7 +57,7 @@ public class Message {
         this.parts = parts;
     }
 
-    public Message(IdGenerator partIdGenerator, String source, String destination, String message, String encoding) {
+    public Message(IdGenerator partIdGenerator,  String source, String destination, String message, String encoding) {
         this.source = source;
         this.destination = destination;
         this.encoding = encoding;

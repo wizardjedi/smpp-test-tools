@@ -4,6 +4,7 @@ import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -13,11 +14,13 @@ public class MessagePart implements Delayed{
     protected Long id;
     protected String source;
     protected String destination;
+    @JsonIgnore
     protected byte[] shortMessage;
     protected byte sourceTon;
     protected byte sourceNpi;
     protected byte destinationTon;
     protected byte destinationNpi;
+    @JsonIgnore
     protected Message message;
     protected String smscId;
     protected PartState state;
