@@ -71,6 +71,7 @@ public class SmppSessionHandler extends DefaultSmppSessionHandler {
             log.error("{} {}", deliveryReceipt.getMessageId(), part);
             
             if (part != null) {
+                part.setError(deliveryReceipt.getErrorCode());
                 part.setState(PartState.valueOf(deliveryReceipt.getState()));
             }
 

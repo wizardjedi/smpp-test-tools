@@ -4,11 +4,10 @@ import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class MessagePart implements Delayed{
     protected Long id;
@@ -24,13 +23,23 @@ public class MessagePart implements Delayed{
     protected Message message;
     protected String smscId;
     protected PartState state;
-    protected int tryCount = 0;
+    protected byte tryCount = 0;
+    protected byte sendTryCount = 0;
+    protected int error = 0;
 
+    public int getError() {
+        return error;
+    }
+
+    public void setError(int error) {
+        this.error = error;
+    }
+    
     public String getSmscId() {
         return smscId;
     }
 
-    public void setSmscId(String smscId) {
+    public synchronized void setSmscId(String smscId) {
         this.smscId = smscId;
     }
 
@@ -38,7 +47,7 @@ public class MessagePart implements Delayed{
         return message;
     }
 
-    public void setMessage(Message message) {
+    public synchronized void setMessage(Message message) {
         this.message = message;
     }
 
@@ -46,7 +55,7 @@ public class MessagePart implements Delayed{
         return id;
     }
 
-    public void setId(Long id) {
+    public synchronized void setId(Long id) {
         this.id = id;
     }
 
@@ -54,7 +63,7 @@ public class MessagePart implements Delayed{
         return source;
     }
 
-    public void setSource(String source) {
+    public synchronized void setSource(String source) {
         this.source = source;
     }
 
@@ -62,7 +71,7 @@ public class MessagePart implements Delayed{
         return destination;
     }
 
-    public void setDestination(String destination) {
+    public synchronized void setDestination(String destination) {
         this.destination = destination;
     }
 
@@ -70,7 +79,7 @@ public class MessagePart implements Delayed{
         return shortMessage;
     }
 
-    public void setShortMessage(byte[] shortMessage) {
+    public synchronized void setShortMessage(byte[] shortMessage) {
         this.shortMessage = shortMessage;
     }
 
@@ -78,7 +87,7 @@ public class MessagePart implements Delayed{
         return sourceTon;
     }
 
-    public void setSourceTon(byte sourceTon) {
+    public synchronized void setSourceTon(byte sourceTon) {
         this.sourceTon = sourceTon;
     }
 
@@ -86,7 +95,7 @@ public class MessagePart implements Delayed{
         return sourceNpi;
     }
 
-    public void setSourceNpi(byte sourceNpi) {
+    public synchronized void setSourceNpi(byte sourceNpi) {
         this.sourceNpi = sourceNpi;
     }
 
@@ -94,7 +103,7 @@ public class MessagePart implements Delayed{
         return destinationTon;
     }
 
-    public void setDestinationTon(byte destinationTon) {
+    public synchronized void setDestinationTon(byte destinationTon) {
         this.destinationTon = destinationTon;
     }
 
@@ -102,7 +111,7 @@ public class MessagePart implements Delayed{
         return destinationNpi;
     }
 
-    public void setDestinationNpi(byte destinationNpi) {
+    public synchronized void setDestinationNpi(byte destinationNpi) {
         this.destinationNpi = destinationNpi;
     }
 
@@ -110,7 +119,7 @@ public class MessagePart implements Delayed{
         return state;
     }
 
-    public void setState(PartState state) {
+    public synchronized void setState(PartState state) {
         this.state = state;
     }
 
@@ -118,8 +127,12 @@ public class MessagePart implements Delayed{
         return tryCount;
     }
 
-    public void setTryCount(int tryCount) {
+    public synchronized void setTryCount(byte tryCount) {
         this.tryCount = tryCount;
+    }
+
+    public synchronized void setSendTryCount(byte sendTryCount) {
+        this.sendTryCount = sendTryCount;
     }
 
     public SubmitSm createSubmitSm() throws SmppInvalidArgumentException {
