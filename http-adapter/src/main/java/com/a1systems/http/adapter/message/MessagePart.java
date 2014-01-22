@@ -106,6 +106,22 @@ public class MessagePart implements Delayed{
         this.destinationNpi = destinationNpi;
     }
 
+    public PartState getState() {
+        return state;
+    }
+
+    public void setState(PartState state) {
+        this.state = state;
+    }
+
+    public int getTryCount() {
+        return tryCount;
+    }
+
+    public void setTryCount(int tryCount) {
+        this.tryCount = tryCount;
+    }
+
     public SubmitSm createSubmitSm() throws SmppInvalidArgumentException {
         SubmitSm submitSm = new SubmitSm();
 

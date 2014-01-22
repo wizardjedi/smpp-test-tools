@@ -55,6 +55,8 @@ public class Application {
         this.partIdGenerator = new IdGenerator(null, 10L);
     }
 
+    
+    
     public RateLimiter getInputLimiter() {
         return inputLimiter;
     }
@@ -163,7 +165,7 @@ public class Application {
         return linkIds;
     }
 
-    public void setSmscId(String messageId, MessagePart part) {
+    public synchronized void setSmscId(String messageId, MessagePart part) {
         part.setSmscId(messageId);
 
         this.linkIds.put(messageId, part);

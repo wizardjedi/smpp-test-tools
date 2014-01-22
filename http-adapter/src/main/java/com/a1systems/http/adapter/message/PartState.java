@@ -1,15 +1,26 @@
 package com.a1systems.http.adapter.message;
 
-/*    public static final byte STATE_ENROUTE = (byte) 0x01;
-    public static final byte STATE_DELIVERED = (byte) 0x02;
-    public static final byte STATE_EXPIRED = (byte) 0x03;
-    public static final byte STATE_DELETED = (byte) 0x04;
-    public static final byte STATE_UNDELIVERABLE = (byte) 0x05;
-    public static final byte STATE_ACCEPTED = (byte) 0x06;
-    public static final byte STATE_UNKNOWN = (byte) 0x07;
-    public static final byte STATE_REJECTED = (byte) 0x08;
-*/
 public enum PartState {
-    QUEUED, NOT_SENT, SENDING, ENROUTE, DELIVERED, EXPIRED, DELETED, UNDELIVERABLE, ACCEPTED, UNKNOWN, REJECTED;
+    ENROUTE(1), 
+    DELIVERED(2), 
+    EXPIRED(3), 
+    DELETED(4), 
+    UNDELIVERABLE(5), 
+    ACCEPTED(6), 
+    UNKNOWN(7), 
+    REJECTED(8),
+    QUEUED(9), 
+    NOT_SENT(10), 
+    SENDING(11);
+
+    protected byte state;
+    
+    PartState(int i) {
+        state = (byte)state;
+    }
+    
+    public static PartState valueOf(byte state) {
+        return PartState.values()[state-1];
+    }
 }
 
