@@ -32,6 +32,8 @@
 
         <joda.time.version>2.3</joda.time.version>
 
+        <metrics.version>3.0.1</metrics.version>
+
         <mcp.source.version>1.7</mcp.source.version>
         <mcp.target.version>1.7</mcp.target.version>
         <mcp.version>3.1</mcp.version>
@@ -239,6 +241,17 @@
             <artifactId>jackson-datatype-joda</artifactId>
             <version>2.3.0</version>
         </dependency>
+        
+        <!-- metrics -->
+
+        <dependency>
+            <groupId>com.codahale.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+
+
+
     </dependencies>
 
     <build>
