@@ -19,7 +19,9 @@ import com.cloudhopper.smpp.tlv.TlvConvertException;
 import com.cloudhopper.smpp.util.DeliveryReceipt;
 import com.cloudhopper.smpp.util.DeliveryReceiptException;
 import java.util.logging.Level;
+import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +58,7 @@ public class SmppSessionHandler extends DefaultSmppSessionHandler {
             
             DeliveryReceipt deliveryReceipt = new DeliveryReceipt();
             try {
-                deliveryReceipt = DeliveryReceipt.parseShortMessage(deliveryReceiptString, DateTimeZone.forOffsetHours(4), true);
+                deliveryReceipt = DeliveryReceipt.parseShortMessage(deliveryReceiptString, client.getTimeZone(), true);
             } catch (DeliveryReceiptException ex) {
                 log.error("{}", ex);
             }
@@ -72,6 +74,11 @@ public class SmppSessionHandler extends DefaultSmppSessionHandler {
             
             if (part != null) {
                 part.setError(deliveryReceipt.getErrorCode());
+                
+                DateTime dateTime = deliveryReceipt.getDoneDate();
+                
+                part.setDeliveryReceiptDate(dateTime.toDateTime(DateTimeZone.getDefault()));
+                
                 part.setState(PartState.valueOf(deliveryReceipt.getState()));
             }
 

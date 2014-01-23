@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,8 @@ public class Client {
 
     protected DelayQueue<MessagePart> queue;
 
+    protected DateTimeZone timeZone = DateTimeZone.getDefault();
+    
     public Client(SmppSessionConfiguration cfg) {
         this.cfg = cfg;
 
@@ -130,6 +133,14 @@ public class Client {
         this.rebindPeriod = rebindPeriod;
     }
 
+    public DateTimeZone getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(DateTimeZone timeZone) {
+        this.timeZone = timeZone;
+    }
+    
     public long getElinkPeriod() {
         return elinkPeriod;
     }
