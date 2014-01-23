@@ -206,8 +206,6 @@ public class Client {
     }
 
     public void addToQueue(MessagePart part) {
-        log.error("{}", this.queue.size());
-
         this.queue.add(part);
     }
 
