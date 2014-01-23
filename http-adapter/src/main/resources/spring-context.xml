@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	   xmlns:p="http://www.springframework.org/schema/p"
-	   xmlns:c="http://www.springframework.org/schema/c"
-	   xmlns:context="http://www.springframework.org/schema/context"
-	   xmlns:task="http://www.springframework.org/schema/task"
-	   xmlns:tx="http://www.springframework.org/schema/tx"
-	   xmlns:util="http://www.springframework.org/schema/util"
-	   xmlns:mvc="http://www.springframework.org/schema/mvc"
-	   xmlns:security="http://www.springframework.org/schema/security"
-	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
 			http://www.springframework.org/schema/beans/spring-beans.xsd
 			http://www.springframework.org/schema/task
 			http://www.springframework.org/schema/task/spring-task.xsd
@@ -72,8 +72,8 @@
         <property name="idleTimeout" value="10000" />
     </bean>
 
-	<bean id="server" depends-on="application" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
-		<constructor-arg ref="jettyThreadPool"  />
+    <bean id="server" depends-on="application" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
+        <constructor-arg ref="jettyThreadPool"  />
         <property name="connectors">
             <list>
                 <bean class="org.eclipse.jetty.server.ServerConnector" >
@@ -117,10 +117,23 @@
                     </bean>
                 </property>
             </bean>
-		</property>
-	</bean>
-        
-        
-        <bean id="jackson2ObjectMapperFactoryBean" class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
-        </bean>
+        </property>
+    </bean>
+
+
+    <bean id="jackson2ObjectMapperFactoryBean" class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+        <property name="objectMapper">
+            <bean class="com.fasterxml.jackson.databind.ObjectMapper" />
+        </property>
+        <property name="modules">
+            <list>
+                <bean class="com.fasterxml.jackson.datatype.joda.JodaModule" />
+            </list>
+        </property>
+        <property name="featuresToDisable">
+            <array>
+                <util:constant static-field="com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS" />
+            </array>
+        </property>
+    </bean>
 </beans>

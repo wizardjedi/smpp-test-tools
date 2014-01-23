@@ -4,10 +4,15 @@ import com.cloudhopper.commons.util.HexUtil;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import org.joda.time.DateTime;
+import org.joda.time.ReadableDateTime;
+import org.springframework.format.annotation.DateTimeFormat;
 
 public class MessagePart implements Delayed{
     protected Long id;
@@ -27,14 +32,42 @@ public class MessagePart implements Delayed{
     protected byte sendTryCount = 0;
     protected int error = 0;
 
+    protected DateTime createDate;
+    protected DateTime sendDate;
+    protected DateTime deliveryReceiptDate;
+
+    public DateTime getCreateDate() {
+        return createDate;
+    }
+
+    public synchronized void setCreateDate(DateTime createDate) {
+        this.createDate = createDate;
+    }
+
+    public DateTime getSendDate() {
+        return sendDate;
+    }
+
+    public synchronized void setSendDate(DateTime sendDate) {
+        this.sendDate = sendDate;
+    }
+
+    public DateTime getDeliveryReceiptDate() {
+        return deliveryReceiptDate;
+    }
+
+    public synchronized void setDeliveryReceiptDate(DateTime deliveryReceiptDate) {
+        this.deliveryReceiptDate = deliveryReceiptDate;
+    }
+
     public int getError() {
         return error;
     }
 
-    public void setError(int error) {
+    public synchronized void setError(int error) {
         this.error = error;
     }
-    
+
     public String getSmscId() {
         return smscId;
     }

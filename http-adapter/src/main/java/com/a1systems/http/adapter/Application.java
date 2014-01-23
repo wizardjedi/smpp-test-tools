@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,12 +43,12 @@ public class Application {
     protected List<Client> clients = new ArrayList<Client>();
 
     protected RateLimiter inputLimiter;
-    
+
     protected int inputSpeed = 100;
-    
+
     @Autowired
     protected ObjectMapper objectMapper;
-    
+
     public Application() {
         this.sendPool = Executors.newFixedThreadPool(10);
 
@@ -55,8 +56,8 @@ public class Application {
         this.partIdGenerator = new IdGenerator(null, 10L);
     }
 
-    
-    
+
+
     public RateLimiter getInputLimiter() {
         return inputLimiter;
     }
@@ -64,7 +65,7 @@ public class Application {
     public void setInputLimiter(RateLimiter inputLimiter) {
         this.inputLimiter = inputLimiter;
     }
-    
+
     public ExecutorService getSendPool() {
         return sendPool;
     }
@@ -96,7 +97,7 @@ public class Application {
     public void setInputSpeed(int inputSpeed) {
         this.inputSpeed = inputSpeed;
     }
-    
+
     public void start() {
         this.sendPool = Executors.newCachedThreadPool();
 
@@ -109,7 +110,7 @@ public class Application {
         for (Client client:this.smppLinks.values()) {
             this.clients.add(client);
         }
-        
+
         this.inputLimiter = RateLimiter.create(this.inputSpeed);
     }
 
@@ -134,6 +135,8 @@ public class Application {
     public String sendMessage(String link, String source, String destination, String message, String encoding) throws JsonProcessingException {
         Message msg = new Message(partIdGenerator, source, destination, message, encoding);
 
+        msg.setCreateDate(new DateTime());
+
         if (this.inputLimiter.tryAcquire(msg.getParts().size())) {
             msg.setId(messageIdGenerator.generate());
 
@@ -142,6 +145,8 @@ public class Application {
             this.messages.put(msg.getId(), msg);
 
             for (MessagePart part : msg.getParts()) {
+                part.setCreateDate(new DateTime());
+
                 this.messageParts.put(part.getId(), part);
 
                 client.addToQueue(part);
@@ -167,6 +172,8 @@ public class Application {
 
     public synchronized void setSmscId(String messageId, MessagePart part) {
         part.setSmscId(messageId);
+
+        part.setSendDate(new DateTime());
 
         this.linkIds.put(messageId, part);
     }

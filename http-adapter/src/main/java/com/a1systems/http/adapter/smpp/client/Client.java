@@ -58,7 +58,7 @@ public class Client {
         if (this.timer == null) {
             this.timer = Executors.newScheduledThreadPool(2);
         }
-        
+
         this.bind();
     }
 
@@ -195,6 +195,8 @@ public class Client {
     }
 
     public void addToQueue(MessagePart part) {
+        log.error("{}", this.queue.size());
+
         this.queue.add(part);
     }
 

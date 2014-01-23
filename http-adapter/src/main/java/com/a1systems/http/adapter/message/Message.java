@@ -7,6 +7,7 @@ import com.cloudhopper.commons.util.RandomUtil;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import org.joda.time.DateTime;
 
 public class Message {
     protected Long id;
@@ -15,7 +16,33 @@ public class Message {
     protected String encoding;
     protected Set<MessagePart> parts = new HashSet<MessagePart>();
     protected int partsCount;
+    protected DateTime createDate;
+    protected DateTime sendDate;
+    protected DateTime deliveryReceiptDate;
 
+    public DateTime getCreateDate() {
+        return createDate;
+    }
+
+    public void setCreateDate(DateTime createDate) {
+        this.createDate = createDate;
+    }
+
+    public DateTime getSendDate() {
+        return sendDate;
+    }
+
+    public void setSendDate(DateTime sendDate) {
+        this.sendDate = sendDate;
+    }
+
+    public DateTime getDeliveryReceiptDate() {
+        return deliveryReceiptDate;
+    }
+
+    public void setDeliveryReceiptDate(DateTime deliveryReceiptDate) {
+        this.deliveryReceiptDate = deliveryReceiptDate;
+    }
 
     public Long getId() {
         return id;
