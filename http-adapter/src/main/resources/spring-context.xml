@@ -24,6 +24,8 @@
 			http://www.springframework.org/schema/security
 			http://www.springframework.org/schema/security/spring-security.xsd
 ">
+    <bean class="com.codahale.metrics.MetricRegistry" />
+
     <bean id="asyncTaskPool" class="java.util.concurrent.Executors" factory-method="newScheduledThreadPool" destroy-method="shutdown">
         <constructor-arg value="5" />
     </bean>

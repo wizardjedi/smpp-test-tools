@@ -6,7 +6,11 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.RateLimiter;
+import com.codahale.metrics.Gauge;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -15,8 +19,12 @@ import java.util.concurrent.TimeUnit;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class Client {
+
+    @Autowired
+    protected MetricRegistry metricRegistry;
 
     public static final Logger log = LoggerFactory.getLogger(Client.class);
 
@@ -42,7 +50,7 @@ public class Client {
     protected DelayQueue<MessagePart> queue;
 
     protected DateTimeZone timeZone = DateTimeZone.getDefault();
-    
+
     public Client(SmppSessionConfiguration cfg) {
         this.cfg = cfg;
 
@@ -62,11 +70,25 @@ public class Client {
             this.timer = Executors.newScheduledThreadPool(2);
         }
 
+        Gauge<Integer> g = new Gauge<Integer>() {
+            @Override
+            public Integer getValue() {
+                return queue.size();
+            }
+
+        };
+
+        metricRegistry.register("gauge", (Metric)g);
+
         this.bind();
     }
 
     public MessagePart poll() {
         return queue.poll();
+    }
+
+    public int getQueueSize() {
+        return this.queue.size();
     }
 
     private void runRebindTask() {
@@ -140,7 +162,7 @@ public class Client {
     public void setTimeZone(DateTimeZone timeZone) {
         this.timeZone = timeZone;
     }
-    
+
     public long getElinkPeriod() {
         return elinkPeriod;
     }

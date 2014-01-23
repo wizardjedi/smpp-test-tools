@@ -5,6 +5,8 @@ import com.a1systems.http.adapter.message.MessagePart;
 import com.a1systems.http.adapter.sender.SenderTask;
 import com.a1systems.http.adapter.sender.SessionHolder;
 import com.a1systems.http.adapter.smpp.client.Client;
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.RateLimiter;
@@ -45,6 +47,9 @@ public class Application {
     protected RateLimiter inputLimiter;
 
     protected int inputSpeed = 100;
+
+    @Autowired
+    protected MetricRegistry metricRegistry;
 
     @Autowired
     protected ObjectMapper objectMapper;
@@ -112,6 +117,9 @@ public class Application {
         }
 
         this.inputLimiter = RateLimiter.create(this.inputSpeed);
+
+        final JmxReporter reporter = JmxReporter.forRegistry(metricRegistry).build();
+        reporter.start();
     }
 
     public SessionHolder getMessagePart() {

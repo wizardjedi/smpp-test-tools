@@ -34,6 +34,8 @@ public class SenderTask implements Callable<Object> {
 
                     logger.error("Prepare to send {}", ssm);
 
+                    holder.getPart().setTryCount((byte) (holder.getPart().getTryCount()+1));
+
                     holder.getSession().sendRequestPdu(ssm, TimeUnit.SECONDS.toMillis(60), false);
                 } catch (RecoverablePduException | UnrecoverablePduException | SmppTimeoutException | SmppChannelException | InterruptedException ex) {
                     logger.error("{}", ex);

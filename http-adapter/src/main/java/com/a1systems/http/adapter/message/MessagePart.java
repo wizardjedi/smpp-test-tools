@@ -156,7 +156,7 @@ public class MessagePart implements Delayed{
         this.state = state;
     }
 
-    public int getTryCount() {
+    public byte getTryCount() {
         return tryCount;
     }
 
