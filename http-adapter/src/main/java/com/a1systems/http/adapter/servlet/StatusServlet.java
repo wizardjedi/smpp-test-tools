@@ -20,7 +20,7 @@ public class StatusServlet extends HttpServlet {
     
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html");
+        response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_OK);
         
         String data = objectMapper.writeValueAsString(new ArrayList<String>());

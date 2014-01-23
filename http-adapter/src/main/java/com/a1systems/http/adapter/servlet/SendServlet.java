@@ -29,7 +29,7 @@ public class SendServlet extends HttpServlet {
         String link = req.getParameter("link");
 
 
-        response.setContentType("text/html");
+        response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_OK);
         response.getWriter().println(this.application.sendMessage(link, source, destination, text, encoding));
     }
