@@ -1,5 +1,6 @@
 package com.a1systems.http.adapter;
 
+import com.a1systems.http.adapter.dao.Dao;
 import com.a1systems.http.adapter.message.Message;
 import com.a1systems.http.adapter.message.MessagePart;
 import com.a1systems.http.adapter.sender.SenderTask;
@@ -48,6 +49,11 @@ public class Application {
 
     protected int inputSpeed = 100;
 
+    protected RateLimiter dbSendLimiter;
+
+    @Autowired
+    protected Dao dao;
+
     @Autowired
     protected MetricRegistry metricRegistry;
 
@@ -61,7 +67,13 @@ public class Application {
         this.partIdGenerator = new IdGenerator(null, 10L);
     }
 
+    public Dao getDao() {
+        return dao;
+    }
 
+    public void setDao(Dao dao) {
+        this.dao = dao;
+    }
 
     public RateLimiter getInputLimiter() {
         return inputLimiter;
@@ -118,6 +130,8 @@ public class Application {
 
         this.inputLimiter = RateLimiter.create(this.inputSpeed);
 
+        this.dbSendLimiter = RateLimiter.create(100);
+
         final JmxReporter reporter = JmxReporter.forRegistry(metricRegistry).build();
         reporter.start();
     }
@@ -157,6 +171,8 @@ public class Application {
             Client client = this.getSmppLinks().get(link);
 
             this.messages.put(msg.getId(), msg);
+
+            this.dao.saveMessage(msg);
 
             for (MessagePart part : msg.getParts()) {
                 part.setCreateDate(new DateTime());

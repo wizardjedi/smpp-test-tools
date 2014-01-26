@@ -19,6 +19,7 @@ public class Message {
     protected DateTime createDate;
     protected DateTime sendDate;
     protected DateTime deliveryReceiptDate;
+    protected String message;
 
     public DateTime getCreateDate() {
         return createDate;
@@ -84,10 +85,19 @@ public class Message {
         this.parts = parts;
     }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     public Message(IdGenerator partIdGenerator,  String source, String destination, String message, String encoding) {
         this.source = source;
         this.destination = destination;
         this.encoding = encoding;
+        this.message = message;
 
         byte[] encodedText = CharsetUtil.encode(message, this.encoding);
 

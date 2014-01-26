@@ -55,7 +55,7 @@
                 <property name="windowSize" value="10000" />
             </bean>
         </constructor-arg>
-        <property name="speed" value="5" />
+        <property name="speed" value="50" />
         <property name="elinkPeriod" value="30" />
         <property name="timer" ref="asyncTaskPool" />
         <!--property name="timeZone">
@@ -147,11 +147,17 @@
 		<property name="url" value="${jdbc.url}" />
 		<property name="username" value="${jdbc.username}" />
 		<property name="password" value="${jdbc.password}" />
-		<property name="initialSize" value="5"/>
+		<property name="initialSize" value="20"/>
 		<property name="validationQuery" value="SELECT 1"/>
 		<property name="testOnBorrow" value="true"/>
 		<property name="validationInterval" value="30000"/>
 	</bean>
+
+    <bean class="org.springframework.jdbc.core.JdbcTemplate">
+        <property name="dataSource" ref="jdbcConnection" />
+    </bean>
+
+    <bean id="dao" class="com.a1systems.http.adapter.dao.JdbcDao" />
 
     <context:property-placeholder location="classpath:config.properties" />
 </beans>
