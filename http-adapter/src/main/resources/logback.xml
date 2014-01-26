@@ -14,6 +14,8 @@
 
 	<logger name="org.springframework" level="info" />
 
+    <logger name="com.a1systems" level="trace" />
+
 	<root level="info">
 		<appender-ref ref="console" />
 	</root>
