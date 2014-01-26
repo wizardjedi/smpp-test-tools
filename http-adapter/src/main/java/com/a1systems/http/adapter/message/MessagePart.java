@@ -193,11 +193,20 @@ public class MessagePart implements Delayed{
 
     @Override
     public long getDelay(TimeUnit unit) {
-        return -1;
+        if (this.sendDate != null) {
+            return unit.convert(this.getSendDate().getMillis() - DateTime.now().getMillis(), TimeUnit.MILLISECONDS);
+        } else {
+            return -1;
+        }
     }
 
     @Override
-    public int compareTo(Delayed o) {
-        return -1;
+    public int compareTo(Delayed delayed) {
+        if( delayed == this ) {
+            return 0;
+        }
+
+        long d = ( getDelay( TimeUnit.MILLISECONDS ) - delayed.getDelay( TimeUnit.MILLISECONDS ) );
+        return ( ( d == 0 ) ? 0 : ( ( d < 0 ) ? -1 : 1 ) );
     }
 }

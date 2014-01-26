@@ -43,6 +43,7 @@ public class Client {
 
     protected long rebindPeriod = 5;
     protected long elinkPeriod = 5;
+    protected long resendPeriod = 60;
 
     protected int speed = 30;
     protected RateLimiter rateLimiter;
@@ -169,6 +170,14 @@ public class Client {
 
     public void setElinkPeriod(long elinkPeriod) {
         this.elinkPeriod = elinkPeriod;
+    }
+
+    public long getResendPeriod() {
+        return resendPeriod;
+    }
+
+    public void setResendPeriod(long resendPeriod) {
+        this.resendPeriod = resendPeriod;
     }
 
     public SmppClient getSmppClient() {

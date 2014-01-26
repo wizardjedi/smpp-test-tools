@@ -123,17 +123,23 @@ public class Application {
     }
 
     public SessionHolder getMessagePart() {
-        int num = this.linkNum.incrementAndGet();
+        if (this.smppLinks.size() > 0) {
+            int num = this.linkNum.incrementAndGet();
 
-        int linkNumber = num % this.smppLinks.size();
+            int linkNumber = num % this.smppLinks.size();
 
-        Client client = this.clients.get(linkNumber);
+            try {
+                Client client = this.clients.get(linkNumber);
 
-        if (client.getRateLimiter().tryAcquire()) {
-            MessagePart part = client.poll();
+                if (client.getRateLimiter().tryAcquire()) {
+                    MessagePart part = client.poll();
 
-            if (part != null) {
-                return new SessionHolder(client.getSession(), part);
+                    if (part != null) {
+                        return new SessionHolder(client, client.getSession(), part);
+                    }
+                }
+            } catch (IndexOutOfBoundsException e) {
+                /* */
             }
         }
 
