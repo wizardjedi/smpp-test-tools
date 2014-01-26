@@ -22,13 +22,13 @@
 
         <ch.smpp.version>5.0.5</ch.smpp.version>
         <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
-        <ch.commons.charset.version>3.0.0</ch.commons.charset.version>
+        <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
 
         <jetty.version>9.1.1.v20140108</jetty.version>
 
         <guava.version>16.0</guava.version>
 
-        <jackson.version>2.3.0</jackson.version>
+        <jackson.version>2.3.1</jackson.version>
 
         <joda.time.version>2.3</joda.time.version>
 
@@ -254,7 +254,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-joda</artifactId>
-            <version>2.3.0</version>
+            <version>${jackson.version}</version>
         </dependency>
 
         <!-- metrics -->
