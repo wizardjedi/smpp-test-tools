@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/task
+			http://www.springframework.org/schema/task/spring-task.xsd
+			http://www.springframework.org/schema/tx
+			http://www.springframework.org/schema/tx/spring-tx.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/util
+			http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc
+			http://www.springframework.org/schema/mvc/spring-mvc.xsd
+			http://www.springframework.org/schema/security
+			http://www.springframework.org/schema/security/spring-security.xsd
+">
+    <bean class="com.codahale.metrics.MetricRegistry" />
+
+    <bean id="asyncTaskPool" class="java.util.concurrent.Executors" factory-method="newScheduledThreadPool" destroy-method="shutdown">
+        <constructor-arg value="5" />
+    </bean>
+
+    <bean id="application" class="com.a1systems.http.adapter.Application" init-method="start">
+        <property name="asyncTaskPool" ref="asyncTaskPool" />
+        <property name="smppLinks">
+            <map>
+                <entry key="link1" value-ref="link1" />
+            </map>
+        </property>
+        <property name="inputSpeed" value="100" />
+        <property name="sendPool">
+            <bean class="java.util.concurrent.Executors" factory-method="newFixedThreadPool" destroy-method="shutdown">
+                <constructor-arg value="10" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="link1" class="com.a1systems.http.adapter.smpp.client.Client" init-method="start">
+        <constructor-arg>
+            <bean class="com.cloudhopper.smpp.SmppSessionConfiguration">
+                <property name="systemId" value="smppclient1" />
+                <property name="password" value="password" />
+                <property name="host" value="127.0.0.1" />
+                <property name="port" value="2775" />
+                <property name="windowSize" value="10000" />
+            </bean>
+        </constructor-arg>
+        <property name="speed" value="50" />
+        <property name="elinkPeriod" value="30" />
+        <property name="timer" ref="asyncTaskPool" />
+        <!--property name="timeZone">
+            <util:constant static-field="org.joda.time.DateTimeZone.UTC" />
+        </property-->
+        <property name="sessionHandler">
+            <bean class="com.a1systems.http.adapter.smpp.SmppSessionHandler">
+                <constructor-arg ref="link1" />
+            </bean>
+        </property>
+
+    </bean>
+
+    <context:component-scan base-package="com.a1systems.http.adapter" />
+
+    <bean id="jettyThreadPool" class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+        <property name="minThreads" value="10" />
+        <property name="maxThreads" value="100" />
+        <property name="idleTimeout" value="10000" />
+    </bean>
+
+    <bean id="server" depends-on="application" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
+        <constructor-arg ref="jettyThreadPool"  />
+        <property name="connectors">
+            <list>
+                <bean class="org.eclipse.jetty.server.ServerConnector" >
+                    <constructor-arg ref="server" />
+                    <property name="port" value="8182" />
+                    <property name="acceptQueueSize" value="100" />
+                </bean>
+            </list>
+        </property>
+        <property name="handler">
+            <bean class="org.eclipse.jetty.servlet.ServletContextHandler">
+                <property name="contextPath" value="/" />
+                <property name="servletHandler">
+                    <bean class="org.eclipse.jetty.servlet.ServletHandler">
+                        <property name="servlets">
+                            <list>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="status">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.http.adapter.servlet.StatusServlet" />
+                                    </constructor-arg>
+                                </bean>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="send">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.http.adapter.servlet.SendServlet" />
+                                    </constructor-arg>
+                                </bean>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="deliveryStatus">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.http.adapter.servlet.DeliveryStatusServlet" />
+                                    </constructor-arg>
+                                </bean>
+                            </list>
+                        </property>
+                        <property name="servletMappings">
+                            <list>
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:default="true" p:pathSpec="/status" p:servletName="status"  />
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:pathSpec="/send" p:servletName="send"  />
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:pathSpec="/delivery" p:servletName="deliveryStatus"  />
+                            </list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+
+    <bean id="jackson2ObjectMapperFactoryBean" class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+        <property name="objectMapper">
+            <bean class="com.fasterxml.jackson.databind.ObjectMapper" />
+        </property>
+        <property name="modules">
+            <list>
+                <bean class="com.fasterxml.jackson.datatype.joda.JodaModule" />
+            </list>
+        </property>
+        <property name="featuresToDisable">
+            <array>
+                <util:constant static-field="com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS" />
+            </array>
+        </property>
+    </bean>
+
+    <bean id="jdbcConnection" class="org.apache.tomcat.jdbc.pool.DataSource">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<property name="initialSize" value="20"/>
+		<property name="validationQuery" value="SELECT 1"/>
+		<property name="testOnBorrow" value="true"/>
+		<property name="validationInterval" value="30000"/>
+	</bean>
+
+    <bean class="org.springframework.jdbc.core.JdbcTemplate">
+        <property name="dataSource" ref="jdbcConnection" />
+    </bean>
+
+    <bean id="dao" class="com.a1systems.http.adapter.dao.JdbcDao" />
+
+    <context:property-placeholder location="classpath:config.properties" />
+</beans>

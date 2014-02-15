@@ -11,5 +11,6 @@
         <module>smpp_cli_pusher</module>
     <module>range_slicer</module>
     <module>http-adapter</module>
+    <module>smpp-simlator</module>
   </modules>
 </project>
