@@ -6,13 +6,13 @@
 $ smpp-zabbix-checker <host> <port> <systemid> <password> <test abonent number> <server port>
 ```
 
-This tool will run SMPP server on port (<server port>). Then this tool will connect with credentials ( <host> <port> <systemid> <password>) and send SMS message (submitsm) to SMPP-server. After that this tool will wait for back submitsm with parameters like sent message for check.
+This tool will run SMPP server on port (< server port >). Then this tool will connect with credentials ( < host > < port > < systemid > < password >) and send SMS message (submitsm) to SMPP-server. After that this tool will wait for back submitsm with parameters like sent message for check.
 
 This tool will send message like this:
 
-Destination: <test abonent number>
-Source: zcheck
-Text: This is zabbix test message. Ignore it.1737385304
+* Destination: < test abonent number >
+* Source: zcheck
+* Text: This is zabbix test message. Ignore it.1737385304
 
 If error was occured during send operation (no bind from external server, no success bind to external server, malformed parameters in back submitsm or error in submitsmresp) will return -1. If operation was successfull then will return number of milliseconds took to send operation (from initial submitsm send till back submitsm received).
 
@@ -46,7 +46,9 @@ By default Zabbix will wait for 3 seconds for task execution. So, you've to crea
 ```
 $ crontab -l
 *	*	*	*	*	smpp-zabbix-checker 127.0.0.1 2775 systemid password 79121234567 3712 > /tmp/smpp-zabbix-checker
-$ echo 'UserParameter=smpp.checker[*],cat /tmp/smpp-zabbix-checker' > /etc/zabbix/zabbix_agentd.conf.d/smpp-zabbix-checker.cfg && chown zabbix:zabbix /etc/zabbix/zabbix_agentd.conf.d/smpp-zabbix-checker.cfg && /etc/init.d/zabbix-agent restart
+$ echo 'UserParameter=smpp.checker[*],cat /tmp/smpp-zabbix-checker' > /etc/zabbix/zabbix_agentd.conf.d/smpp-zabbix-checker.cfg 
+$ chown zabbix:zabbix /etc/zabbix/zabbix_agentd.conf.d/smpp-zabbix-checker.cfg 
+$ /etc/init.d/zabbix-agent restart
 ```
 
 Than you've to create data element in Zabbix and setup triggers.
