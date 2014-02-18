@@ -1,0 +1,187 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.a1systems</groupId>
+        <artifactId>smpp-test-tools</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <groupId>com.a1systems</groupId>
+    <artifactId>smpp-zabbix-checker</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>smpp-zabbix-checker</name>
+    <url>http://maven.apache.org</url>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>4.11</junit.version>
+        <ch.smpp.version>5.0.5</ch.smpp.version>
+        <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
+        <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
+        <mcp.source.version>1.6</mcp.source.version>
+        <mcp.target.version>1.6</mcp.target.version>
+        <mcp.version>3.1</mcp.version>
+        <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
+        <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
+        <jdeb.plugin.version>1.0.1</jdeb.plugin.version>
+        
+        <slf4j.version>1.7.6</slf4j.version>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- SLF4J -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <type>jar</type>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        
+        <!-- Cloudhopper smpp library -->
+        <dependency>
+            <groupId>com.cloudhopper</groupId>
+            <artifactId>ch-smpp</artifactId>
+            <version>${ch.smpp.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.cloudhopper</groupId>
+            <artifactId>ch-commons-gsm</artifactId>
+            <version>${ch.commons.gsm.version}</version>
+        </dependency>
+
+        <dependency>
+            <artifactId>ch-commons-charset</artifactId>
+            <groupId>com.cloudhopper</groupId>
+            <type>jar</type>
+            <version>${ch.commons.charset.version}</version>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${mcp.version}</version>
+                <configuration>
+                    <source>${mcp.source.version}</source>
+                    <target>${mcp.target.version}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <addMavenDescriptor>false</addMavenDescriptor>
+                        <compress>true</compress>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>libs/</classpathPrefix>
+                            <mainClass>com.a1systems.smpp.zabbix.checker.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <version>${maven.jar.plugin.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+                <version>${maven.dependency.plugin.version}</version>
+            </plugin>
+            
+            <plugin>
+                <artifactId>jdeb</artifactId>
+                <groupId>org.vafer</groupId>
+                <version>${jdeb.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jdeb</goal>
+                        </goals>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <controlDir>${basedir}/src/deb/control</controlDir>
+                            <dataSet>
+
+                                <data>
+                                    <src>${project.build.directory}/${project.build.finalName}.jar</src>
+                                    <type>file</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/usr/share/${project.name}</prefix>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <src>${project.build.directory}/libs</src>
+                                    <type>directory</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/usr/share/${project.name}/libs</prefix>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <src>${project.build.directory}/../src/main/resources/${project.name}.sh</src>
+                                    <type>file</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <filemode>755</filemode>
+                                        <prefix>/usr/share/${project.name}</prefix>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <type>link</type>
+                                    <symlink>true</symlink>
+                                    <linkName>/usr/bin/${project.name}</linkName>
+                                    <linkTarget>/usr/share/${project.name}/${project.name}.sh</linkTarget>
+                                </data>
+                            </dataSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
