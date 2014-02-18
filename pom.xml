@@ -11,6 +11,7 @@
         <module>smpp_cli_pusher</module>
     <module>range_slicer</module>
     <module>http-adapter</module>
-    <module>smpp-simlator</module>
+    <module>smpp-simulator</module>
+    <module>smpp-zabbix-checker</module>
   </modules>
 </project>
