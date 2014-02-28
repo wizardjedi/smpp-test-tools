@@ -13,5 +13,6 @@
     <module>http-adapter</module>
     <module>smpp-simulator</module>
     <module>smpp-zabbix-checker</module>
+    <module>smpp-multiplexer</module>
   </modules>
 </project>
