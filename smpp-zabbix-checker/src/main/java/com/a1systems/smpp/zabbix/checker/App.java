@@ -1,14 +1,9 @@
 package com.a1systems.smpp.zabbix.checker;
 
 import com.cloudhopper.commons.charset.CharsetUtil;
-import com.cloudhopper.smpp.SmppServerConfiguration;
-import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
-import com.cloudhopper.smpp.impl.DefaultSmppServer;
-import com.cloudhopper.smpp.pdu.BaseBind;
-import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.pdu.BindTransceiverResp;
 import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.SubmitSm;
@@ -17,21 +12,26 @@ import com.cloudhopper.smpp.simulator.SmppSimulatorServer;
 import com.cloudhopper.smpp.simulator.SmppSimulatorSessionHandler;
 import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.LoggingOptions;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppChannelException;
-import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
-import com.cloudhopper.smpp.type.SmppProcessingException;
-import com.cloudhopper.smpp.type.SmppTimeoutException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class App 
 {
+    private SmppSimulatorServer sim;
+    
+    private DefaultSmppClient client;
+    
+    private long end;
+    private long start;    
+    
     public static void main( String[] args )
     {
+        App app = new App();
+        
+        app.run(args);
+    }
+    
+    public void run(String[] args) {    
         String host = args[0];
         int port = Integer.parseInt(args[1]);
         
@@ -42,7 +42,7 @@ public class App
         
         int serverPort = Integer.parseInt(args[5]);
         
-        SmppSimulatorServer sim = new SmppSimulatorServer();
+        sim = new SmppSimulatorServer();
         
         sim.start(serverPort);
         
@@ -59,7 +59,7 @@ public class App
         config.setHost(host);
         config.setPort(port);
         
-        DefaultSmppClient client = new DefaultSmppClient();
+        client = new DefaultSmppClient();
         try {
             SmppSimulatorSessionHandler serverSession = sim.pollNextSession(TimeUnit.SECONDS.toMillis(30));
             BindTransceiverResp resp = new BindTransceiverResp();
@@ -76,7 +76,7 @@ public class App
             
             TimeUnit.SECONDS.sleep(2);
             
-            long start = System.currentTimeMillis();
+            start = System.currentTimeMillis();
             
             SmppSession session = client.bind(config);
             
@@ -92,58 +92,53 @@ public class App
             sm.setSourceAddress(new Address((byte)5, (byte)0, "zcheck"));
             SubmitSmResp submitSmResp = session.submit(sm, TimeUnit.SECONDS.toMillis(30));
             
-            long end = System.currentTimeMillis();
+            end = System.currentTimeMillis();
             
-            if (submitSmResp.getCommandStatus() != 0) {
-                System.out.println(-1);
-                System.exit(0);
+            if (submitSmResp.getCommandStatus() == 0) {
+                Pdu pdu = serverSession.pollNextPdu(TimeUnit.SECONDS.toMillis(30));
+
+                SubmitSm backSm = (SubmitSm)pdu;
+
+                if (
+                    backSm.getSourceAddress().getAddress().equals("zcheck")
+                    && backSm.getDestAddress().getAddress().equals(testAbonent)
+                    && CharsetUtil.decode(backSm.getShortMessage(), CharsetUtil.CHARSET_GSM8).equals(body)
+                ) {
+                     SubmitSmResp backSubmitSmResp = new SubmitSmResp();
+
+                     backSubmitSmResp.setSequenceNumber(pdu.getSequenceNumber());
+                     backSubmitSmResp.setMessageId(String.valueOf(System.currentTimeMillis()));
+
+                     backSubmitSmResp.calculateAndSetCommandLength();
+
+                     serverSession.sendPdu(backSubmitSmResp);
+
+                     success();
+                } else {
+                    fail();
+                }
+            } else {
+                fail();
             }
-            
-            Pdu pdu = serverSession.pollNextPdu(TimeUnit.SECONDS.toMillis(30));
-            
-            SubmitSm backSm = (SubmitSm)pdu;
-            
-            if (
-                backSm.getSourceAddress().getAddress().equals("zcheck")
-                && backSm.getDestAddress().getAddress().equals(testAbonent)
-                && CharsetUtil.decode(backSm.getShortMessage(), CharsetUtil.CHARSET_GSM8).equals(body)
-            ) {
-                 SubmitSmResp backSubmitSmResp = new SubmitSmResp();
-                 
-                 backSubmitSmResp.setSequenceNumber(pdu.getSequenceNumber());
-                 backSubmitSmResp.setMessageId(String.valueOf(System.currentTimeMillis()));
-                
-                 backSubmitSmResp.calculateAndSetCommandLength();
-                 
-                 serverSession.sendPdu(backSubmitSmResp);
-                
-                 System.out.println((end - start));
-                 System.exit(0);
-            }
-            
-            System.out.println(-1);
-            System.exit(0);
-        } catch (SmppTimeoutException ex) {
-            System.out.println(-1);
-            System.exit(0);
-        } catch (SmppChannelException ex) { 
-            System.out.println(-1);
-            System.exit(0);
-        } catch (UnrecoverablePduException ex) {
-            System.out.println(-1);
-            System.exit(0);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
-        } catch (InterruptedException ex) {
-            System.out.println(-1);
-            System.exit(0);
-        } catch (SmppInvalidArgumentException ex) {
-            System.out.println(-1);
-            System.exit(0);
-        } catch (RecoverablePduException ex) {
-            System.out.println(-1);
-            System.exit(0);
         } catch (Exception ex) {
-            System.out.println(-1);
-            System.exit(0);
+            fail();
         }
+    }
+    
+    public void success() {
+        System.out.println((end - start));
+        
+        terminate();
+    } 
+    
+    public void fail() {
+        System.out.println(-1);
+        
+        terminate();
+    }
+    
+    public void terminate() {
+        sim.stop();
+        client.destroy();
     }
 }
