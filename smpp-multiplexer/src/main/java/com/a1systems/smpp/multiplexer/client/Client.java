@@ -28,7 +28,7 @@ public class Client {
     protected volatile SmppSession session;
 
     protected SmppServerSession serverSession;
-    
+
     protected SmppClient smppClient;
 
     protected ScheduledExecutorService timer;
@@ -41,10 +41,9 @@ public class Client {
     protected long resendPeriod = 60;
 
     protected ExecutorService pool;
-    
+
     protected int speed = 30;
     protected RateLimiter rateLimiter;
-
 
     protected DateTimeZone timeZone = DateTimeZone.getDefault();
 
@@ -130,7 +129,7 @@ public class Client {
     public void setServerSession(SmppServerSession serverSession) {
         this.serverSession = serverSession;
     }
-    
+
     // getters and setters
     public long getRebindPeriod() {
         return rebindPeriod;
@@ -147,7 +146,7 @@ public class Client {
     public void setPool(ExecutorService pool) {
         this.pool = pool;
     }
-    
+
     public DateTimeZone getTimeZone() {
         return timeZone;
     }

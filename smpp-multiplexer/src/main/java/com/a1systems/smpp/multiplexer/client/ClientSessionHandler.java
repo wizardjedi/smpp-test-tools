@@ -1,52 +1,51 @@
 package com.a1systems.smpp.multiplexer.client;
 
-import com.a1systems.smpp.multiplexer.task.SenderRespTask;
-import com.a1systems.smpp.multiplexer.task.SenderTask;
+import com.a1systems.smpp.multiplexer.server.SmppServerHandlerImpl;
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.DeliverSm;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppChannelException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
-import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ClientSessionHandler extends DefaultSmppSessionHandler {
+    protected SmppServerHandlerImpl serverHandler;
 
     protected Client client;
-    
-    public ClientSessionHandler(Client client) {
+
+    public ClientSessionHandler(SmppServerHandlerImpl serverHandler, Client client) {
+        this.serverHandler = serverHandler;
         this.client = client;
     }
-    
+
     @Override
     public void fireExpectedPduResponseReceived(PduAsyncResponse pduAsyncResponse) {
-        if (pduAsyncResponse.getResponse() instanceof SubmitSmResp) {
-            ExecutorService pool = client.getPool();
+        PduResponse response = pduAsyncResponse.getResponse();
 
-            pool.submit(new SenderRespTask((SubmitSmResp)pduAsyncResponse.getResponse(), client.getServerSession()));
+        if (response instanceof SubmitSmResp) {
+            serverHandler.processSubmitSmResp((SubmitSmResp)response);
+
+            return ;
         }
+
+        super.fireExpectedPduResponseReceived(pduAsyncResponse);
     }
 
     @Override
     public PduResponse firePduRequestReceived(PduRequest pduRequest) {
         if (pduRequest instanceof DeliverSm) {
-            ExecutorService pool = client.getPool();
+            RouteInfo ri = new RouteInfo();
+            ri.setClient(client);
+            ri.setOutputSequenceNumber(pduRequest.getSequenceNumber());
 
-            pool.submit(new SenderRespTask(pduRequest, client.getServerSession()));
-            
+            pduRequest.setReferenceObject(ri);
+
+            serverHandler.processDeliverSm((DeliverSm)pduRequest);
+
             return null;
-        } else {
-            return super.firePduRequestReceived(pduRequest);
         }
+
+        return super.firePduRequestReceived(pduRequest);
     }
 
-    @Override
-    public void fireChannelUnexpectedlyClosed() {
-        client.bind();
-    }
 }

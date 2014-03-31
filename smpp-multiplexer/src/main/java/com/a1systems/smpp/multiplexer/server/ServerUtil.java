@@ -2,7 +2,7 @@ package com.a1systems.smpp.multiplexer.server;
 
 public class ServerUtil {
 
-    public static long getParts(byte[] udh) {
+    public static long getCurrentPart(byte[] udh) {
         if (udh[1] == (byte)0x00
                 && udh[2] == (byte)0x03) {
             return (long) udh[5];
@@ -14,7 +14,7 @@ public class ServerUtil {
         }
     }
 
-    public static long getCurrentPart(byte[] udh) {
+    public static long getParts(byte[] udh) {
         if (udh[1] == (byte)0x00
                 && udh[2] == (byte)0x03) {
             return (long) udh[4];
