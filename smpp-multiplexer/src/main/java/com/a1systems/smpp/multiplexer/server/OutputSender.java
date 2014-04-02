@@ -33,7 +33,7 @@ public class OutputSender implements Runnable {
         // Todo: check is it needed?
         // pdu.removeSequenceNumber();
 
-        if (session != null) {
+        if (session != null && session.isBound()) {
             try {
                 if (pdu instanceof PduRequest) {
                     session.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(60), false);
