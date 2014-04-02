@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             lo.setLogBytes(false);
             lo.setLogPdu(false);
             cfg.setLoggingOptions(lo);
-            
+
             Client client = new Client(cfg);
 
             client.setSessionHandler(new ClientSessionHandler(this, client));
@@ -100,7 +101,31 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             clients.get(i).setServerSession(session);
         }
 
-        session.serverReady(new SmppServerSessionHandler(session, pool, this));
+        boolean binded = false;
+
+        long start = System.currentTimeMillis();
+
+        try {
+            do {
+                TimeUnit.MILLISECONDS.sleep(500);
+
+                for (int i=0;i<clients.size();i++) {
+                    binded |= (clients.get(i).getSession() != null);
+                }
+            } while ((!binded) || (System.currentTimeMillis() - start) > 30_000);
+
+            if (binded) {
+                logger.info("Create server session");
+
+                session.serverReady(new SmppServerSessionHandler(session, pool, this));
+            } else {
+                logger.error("Timeout");
+
+                session.destroy();
+            }
+        } catch (InterruptedException e) {
+            logger.error("{}", e);
+        }
     }
 
     @Override
@@ -111,7 +136,10 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             clients.get(i).stop();
         }
 
+        session.close();
         session.destroy();
+
+        msgMap.clear();
     }
 
     public void processSubmitSm(SubmitSm ssm) {
@@ -166,9 +194,9 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             logger.info("{}", c);
 
             ri.setClient(c);
-            
+
             ssm.removeSequenceNumber();
-            
+
             pool.submit(new OutputSender(c, session, ssm));
         }
     }
@@ -179,7 +207,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     public void processDeliverSm(DeliverSm deliverSm) {
         deliverSm.removeSequenceNumber();
-        
+
         pool.submit(new InputSender(session, deliverSm));
     }
 
@@ -191,7 +219,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         Client c = ri.getClient();
 
         deliverSmResp.setSequenceNumber((int) ri.getOutputSequenceNumber());
-        
+
         pool.submit(new OutputSender(c, session, deliverSmResp));
     }
 }
