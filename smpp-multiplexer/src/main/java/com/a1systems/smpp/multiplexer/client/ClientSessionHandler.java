@@ -23,6 +23,12 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
         PduResponse response = pduAsyncResponse.getResponse();
 
         if (response instanceof SubmitSmResp) {
+            PduRequest req = pduAsyncResponse.getRequest();
+            
+            RouteInfo ri = (RouteInfo)req.getReferenceObject();
+            
+            response.setSequenceNumber((int)ri.getInputSequenceNumber());
+            
             serverHandler.processSubmitSmResp((SubmitSmResp)response);
 
             return ;
@@ -48,4 +54,8 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
         return super.firePduRequestReceived(pduRequest);
     }
 
+    @Override
+    public void fireChannelUnexpectedlyClosed() {
+        client.bind();
+    }
 }

@@ -66,7 +66,7 @@ public class Application {
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
         endPoints.add(ConnectionEndpoint.create("127.0.0.1", 2775));
-        endPoints.add(ConnectionEndpoint.create("127.0.0.1", 2775));
+        endPoints.add(ConnectionEndpoint.create("127.0.0.1", 2776));
 
         DefaultSmppServer server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints));
 

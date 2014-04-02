@@ -2,6 +2,7 @@ package com.a1systems.smpp.multiplexer.server;
 
 import com.a1systems.smpp.multiplexer.client.RouteInfo;
 import com.cloudhopper.smpp.PduAsyncResponse;
+import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.DeliverSmResp;
@@ -39,7 +40,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             return pduRequest.createResponse();
         }
 
-        if (pduRequest instanceof SubmitSm) {
+        if (pduRequest instanceof SubmitSm) {            
             handler.processSubmitSm((SubmitSm)pduRequest);
         }
 
@@ -58,5 +59,19 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             handler.processDeliverSmResp((DeliverSmResp)pduResponse);
         }
     }
+
+    @Override
+    public void fireChannelUnexpectedlyClosed() {
+        logger.info("Server session destroyed");
+        
+        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+        
+        if (serverSession != null) {
+            handler.sessionDestroyed(null, serverSession);
+        }
+    }
+    
+    
+    
 
 }

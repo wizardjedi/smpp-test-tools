@@ -15,6 +15,7 @@ import com.cloudhopper.smpp.pdu.DeliverSm;
 import com.cloudhopper.smpp.pdu.DeliverSmResp;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
+import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppProcessingException;
@@ -75,6 +76,11 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             cfg.setSystemId(systemId);
             cfg.setPassword(password);
 
+            LoggingOptions lo = new LoggingOptions();
+            lo.setLogBytes(false);
+            lo.setLogPdu(false);
+            cfg.setLoggingOptions(lo);
+            
             Client client = new Client(cfg);
 
             client.setSessionHandler(new ClientSessionHandler(this, client));
@@ -160,6 +166,9 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             logger.info("{}", c);
 
             ri.setClient(c);
+            
+            ssm.removeSequenceNumber();
+            
             pool.submit(new OutputSender(c, session, ssm));
         }
     }
@@ -169,6 +178,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
     }
 
     public void processDeliverSm(DeliverSm deliverSm) {
+        deliverSm.removeSequenceNumber();
+        
         pool.submit(new InputSender(session, deliverSm));
     }
 
@@ -179,6 +190,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
         Client c = ri.getClient();
 
+        deliverSmResp.setSequenceNumber((int) ri.getOutputSequenceNumber());
+        
         pool.submit(new OutputSender(c, session, deliverSmResp));
     }
 }

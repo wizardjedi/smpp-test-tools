@@ -72,7 +72,7 @@ public class Client {
     }
 
     private void runElinkTask() {
-        this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
+        //this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
     }
 
     public void bind() {
@@ -84,6 +84,7 @@ public class Client {
                     && this.session.isBound()) {
                 this.session.close();
                 this.session.destroy();
+                this.session = null;
             }
 
             this.state = ClientState.BINDING;
@@ -115,11 +116,23 @@ public class Client {
 
         this.state = ClientState.STOPPING;
 
-        this.elinkTask.cancel(true);
-        this.rebindTask.cancel(true);
-        this.timer.shutdown();
+        if (this.elinkTask != null) {
+            this.elinkTask.cancel(true);
+        }
+        
+        if (this.rebindTask != null) {
+            this.rebindTask.cancel(true);
+        }
+        
+        if (timer != null){
+            this.timer.shutdown();
+            
+            this.timer = null;
+        }
 
-        this.timer = null;
+        if (this.smppClient != null) {
+            this.smppClient.destroy();
+        }
     }
 
     public SmppServerSession getServerSession() {
