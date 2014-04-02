@@ -1,6 +1,7 @@
 package com.a1systems.smpp.multiplexer.client;
 
 import com.a1systems.smpp.multiplexer.server.SmppServerHandlerImpl;
+import com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler;
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.DeliverSm;
@@ -9,11 +10,11 @@ import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 
 public class ClientSessionHandler extends DefaultSmppSessionHandler {
-    protected SmppServerHandlerImpl serverHandler;
+    protected SmppServerSessionHandler serverHandler;
 
     protected Client client;
 
-    public ClientSessionHandler(SmppServerHandlerImpl serverHandler, Client client) {
+    public ClientSessionHandler(SmppServerSessionHandler serverHandler, Client client) {
         this.serverHandler = serverHandler;
         this.client = client;
     }
@@ -24,11 +25,11 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
 
         if (response instanceof SubmitSmResp) {
             PduRequest req = pduAsyncResponse.getRequest();
-            
+
             RouteInfo ri = (RouteInfo)req.getReferenceObject();
-            
+
             response.setSequenceNumber((int)ri.getInputSequenceNumber());
-            
+
             serverHandler.processSubmitSmResp((SubmitSmResp)response);
 
             return ;

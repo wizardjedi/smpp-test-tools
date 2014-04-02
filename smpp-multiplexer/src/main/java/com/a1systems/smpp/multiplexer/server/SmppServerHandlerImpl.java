@@ -41,24 +41,12 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     List<Application.ConnectionEndpoint> endPoints;
 
-    protected List<Client> clients;
-
-    protected AtomicLong index = new AtomicLong(0);
-
-    protected ConcurrentHashMap<String, Client> msgMap = new ConcurrentHashMap<String, Client>();
+    protected ConcurrentHashMap<Long, SmppServerSessionHandler> handlers = new ConcurrentHashMap<Long, SmppServerSessionHandler>();
 
     public SmppServerHandlerImpl(ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
         this.pool = pool;
 
         this.endPoints = endPoints;
-    }
-
-    public List<Client> getClients() {
-        return clients;
-    }
-
-    public void setClients(List<Client> clients) {
-        this.clients = clients;
     }
 
     @Override
@@ -67,64 +55,29 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         String password = sessionConfiguration.getPassword();
 
         logger.debug("Bind request with {}:{}", systemId, password);
-
-        clients = new ArrayList<>();
-
-        for (Application.ConnectionEndpoint c:endPoints) {
-            SmppSessionConfiguration cfg = new SmppSessionConfiguration();
-            cfg.setHost(c.getHost());
-            cfg.setPort(c.getPort());
-            cfg.setSystemId(systemId);
-            cfg.setPassword(password);
-
-            LoggingOptions lo = new LoggingOptions();
-            lo.setLogBytes(false);
-            lo.setLogPdu(false);
-            cfg.setLoggingOptions(lo);
-
-            Client client = new Client(cfg);
-
-            client.setSessionHandler(new ClientSessionHandler(this, client));
-
-            client.setPool(pool);
-            client.start();
-
-            clients.add(client);
-        }
     }
 
     @Override
     public void sessionCreated(Long sessionId, SmppServerSession session, BaseBindResp preparedBindResponse) throws SmppProcessingException {
         this.session = session;
 
-        for (int i=0;i<clients.size();i++) {
-            clients.get(i).setServerSession(session);
-        }
+        SmppSessionConfiguration sessionConfiguration = session.getConfiguration();
 
-        boolean binded = false;
-
-        long start = System.currentTimeMillis();
+        String systemId = sessionConfiguration.getSystemId();
+        String password = sessionConfiguration.getPassword();
 
         try {
-            do {
-                TimeUnit.MILLISECONDS.sleep(500);
+            SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, session, pool, this);
 
-                for (int i=0;i<clients.size();i++) {
-                    binded |= (clients.get(i).getSession() != null);
-                }
-            } while ((!binded) || (System.currentTimeMillis() - start) > 30_000);
+            handlers.put(sessionId, smppServerSessionHandler);
 
-            if (binded) {
-                logger.info("Create server session");
+            logger.debug("{}", smppServerSessionHandler);
 
-                session.serverReady(new SmppServerSessionHandler(session, pool, this));
-            } else {
-                logger.error("Timeout");
+            session.serverReady(smppServerSessionHandler);
+        } catch (Exception ex) {
+            logger.error("{}", ex);
 
-                session.destroy();
-            }
-        } catch (InterruptedException e) {
-            logger.error("{}", e);
+            throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
         }
     }
 
@@ -132,94 +85,10 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
     public void sessionDestroyed(Long sessionId, SmppServerSession session) {
         logger.debug("Session destroy");
 
-        for (int i=0;i<clients.size();i++) {
-            clients.get(i).stop();
-        }
+        handlers.get(sessionId).fireChannelUnexpectedlyClosed();
 
         session.close();
         session.destroy();
-
-        msgMap.clear();
     }
 
-    public void processSubmitSm(SubmitSm ssm) {
-        List<Client> aliveClients = new ArrayList<>(clients.size());
-
-        for (int i=0;i<clients.size();i++) {
-            if (clients.get(i).getSession() != null) {
-                aliveClients.add(clients.get(i));
-            }
-        }
-
-        if (aliveClients.size() > 0) {
-            long id = Math.abs(index.incrementAndGet()) % aliveClients.size();
-
-            Client c = aliveClients.get((int)id);
-
-            logger.info("Choosed client {}", c);
-
-            RouteInfo ri = new RouteInfo();
-
-            ri.setInputSequenceNumber(ssm.getSequenceNumber());
-
-            ssm.setReferenceObject(ri);
-
-            if (SmppUtil.isUserDataHeaderIndicatorEnabled(ssm.getEsmClass())) {
-                byte[] shortMessage = ssm.getShortMessage();
-
-                byte[] udh = GsmUtil.getShortMessageUserDataHeader(shortMessage);
-
-                long smsId = ServerUtil.getSmsId(udh);
-                long parts = ServerUtil.getParts(udh);
-
-                String key =
-                    ssm.getDestAddress().getAddress()
-                        +"_"
-                        +ssm.getSourceAddress().getAddress()
-                        +"_"
-                        +smsId
-                        +"_"
-                        +parts;
-
-                logger.info("{}", key);
-
-                if (msgMap.containsKey(key)) {
-                    c = msgMap.get(key);
-                } else {
-                    msgMap.put(key, c);
-                }
-
-            }
-
-            logger.info("{}", c);
-
-            ri.setClient(c);
-
-            ssm.removeSequenceNumber();
-
-            pool.submit(new OutputSender(c, session, ssm));
-        }
-    }
-
-    public void processSubmitSmResp(SubmitSmResp submitSmResp) {
-        pool.submit(new InputSender(session, submitSmResp));
-    }
-
-    public void processDeliverSm(DeliverSm deliverSm) {
-        deliverSm.removeSequenceNumber();
-
-        pool.submit(new InputSender(session, deliverSm));
-    }
-
-    public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
-        RouteInfo ri = (RouteInfo)deliverSmResp. getReferenceObject();
-
-        logger.info("{}", ri);
-
-        Client c = ri.getClient();
-
-        deliverSmResp.setSequenceNumber((int) ri.getOutputSequenceNumber());
-
-        pool.submit(new OutputSender(c, session, deliverSmResp));
-    }
 }

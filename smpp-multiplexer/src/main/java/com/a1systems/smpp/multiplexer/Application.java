@@ -57,7 +57,7 @@ public class Application {
     public void run() throws SmppChannelException {
         logger.info("Application starting");
 
-        pool = Executors.newFixedThreadPool(20);
+        pool = Executors.newCachedThreadPool();
 
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(3712);
