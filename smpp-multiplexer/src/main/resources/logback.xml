@@ -6,7 +6,7 @@
 
     <jmxConfigurator />
 
-    <!--appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>./log/system.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>./log/system-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
@@ -17,7 +17,7 @@
         <encoder>
             <pattern>%.-19date [%.-1level] [%thread] %logger{20} %msg%n</pattern>
         </encoder>
-    </appender-->
+    </appender>
 
     
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
@@ -32,6 +32,6 @@
 
     <root level="info">
         <appender-ref ref="console" />
-        <!--appender-ref ref="ROLLING" /-->
+        <appender-ref ref="ROLLING" />
     </root>
 </configuration>
