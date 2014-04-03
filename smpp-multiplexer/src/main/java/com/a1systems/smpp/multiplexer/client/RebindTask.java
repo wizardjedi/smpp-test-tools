@@ -1,6 +1,5 @@
 package com.a1systems.smpp.multiplexer.client;
 
-import com.a1systems.smpp.multiplexer.client.Client;
 import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.type.SmppBindException;
