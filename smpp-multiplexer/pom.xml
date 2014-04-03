@@ -15,11 +15,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>1.7.6</slf4j.version>
-        <logback.version>1.1.1</logback.version>
+        <logback.version>1.1.2</logback.version>
         
         <junit.version>4.11</junit.version>
 
-        <ch.smpp.version>5.0.5</ch.smpp.version>
+        <ch.smpp.version>5.0.6</ch.smpp.version>
         <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
         <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
 
@@ -170,7 +170,7 @@
                 <version>${maven.dependency.plugin.version}</version>
             </plugin>
 
-            <!--plugin>
+            <plugin>
                 <artifactId>jdeb</artifactId>
                 <groupId>org.vafer</groupId>
                 <version>${jdeb.plugin.version}</version>
@@ -202,6 +202,16 @@
                                         <prefix>/usr/share/${project.name}/libs</prefix>
                                     </mapper>
                                 </data>
+                                
+                                <data>
+                                    <src>${project.build.directory}/../src/main/resources/logs</src>
+                                    <type>directory</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <filemode>777</filemode>
+                                        <prefix>/usr/share/${project.name}/logs</prefix>
+                                    </mapper>
+                                </data>
 
                                 <data>
                                     <src>${project.build.directory}/../src/main/resources/${project.name}.sh</src>
@@ -223,7 +233,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin-->
+            </plugin>
         </plugins>
     </build>
 </project>
