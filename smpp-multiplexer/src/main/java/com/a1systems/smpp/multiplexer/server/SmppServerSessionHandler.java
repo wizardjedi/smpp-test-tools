@@ -220,7 +220,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 if (msgMap.containsKey(key)) {
                     MsgRoute route = msgMap.get(key);
 
-                    c = route.getClient();
+                    if (route.getClient().getSession() != null) {
+                        c = route.getClient();
+                    }
                 } else {
                     MsgRoute route = new MsgRoute(c);
 
@@ -229,13 +231,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             }
 
-            logger.info("{}", c);
-
             ri.setClient(c);
 
             ssm.removeSequenceNumber();
-
-            logger.info("Threads:{} task count:{} active:{}", pool.getPoolSize(), pool.getTaskCount(), pool.getActiveCount());
 
             pool.submit(new OutputSender(c, (SmppServerSession) sessionRef.get(), ssm));
         }
