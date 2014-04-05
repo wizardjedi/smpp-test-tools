@@ -44,6 +44,11 @@ public class Application {
         public void setPort(int port) {
             this.port = port;
         }
+
+        @Override
+        public String toString() {
+            return "ConnectionEndpoint{" + "host=" + host + ", port=" + port + '}';
+        }
     }
 
     public ExecutorService getPool() {
@@ -54,19 +59,30 @@ public class Application {
         this.pool = pool;
     }
 
-    public void run() throws SmppChannelException {
+    public void run(CliConfig config) throws SmppChannelException {
         logger.info("Application starting");
 
         pool = Executors.newCachedThreadPool();
 
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
-        serverConfig.setPort(3712);
+        serverConfig.setPort(config.getPort());
         serverConfig.setNonBlockingSocketsEnabled(true);
 
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
-        endPoints.add(ConnectionEndpoint.create("127.0.0.1", 2775));
-        endPoints.add(ConnectionEndpoint.create("127.0.0.1", 2776));
+        String[] configEndPoints = config.getEndPoints().split(",");
+
+        for (int i=0;i<configEndPoints.length;i++) {
+            String endPoint = configEndPoints[i];
+
+            String[] parts = endPoint.split(":");
+
+            ConnectionEndpoint c = ConnectionEndpoint.create(parts[0], Integer.parseInt(parts[1]));
+
+            logger.info("Use end point:{}", c);
+
+            endPoints.add(c);
+        }
 
         DefaultSmppServer server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints));
 

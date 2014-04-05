@@ -16,7 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>1.7.6</slf4j.version>
         <logback.version>1.1.2</logback.version>
-        
+
         <junit.version>4.11</junit.version>
 
         <ch.smpp.version>5.0.6</ch.smpp.version>
@@ -34,15 +34,26 @@
         <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
         <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
         <jdeb.plugin.version>1.0.1</jdeb.plugin.version>
+
+        <args4j.version>2.0.26</args4j.version>
     </properties>
 
     <dependencies>
+        <!-- JUnit dependency -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- ARGS4J -->
+
+        <dependency>
+			<groupId>args4j</groupId>
+			<artifactId>args4j</artifactId>
+			<version>${args4j.version}</version>
+		</dependency>
 
         <!-- Cloudhopper smpp library -->
 
@@ -202,7 +213,7 @@
                                         <prefix>/usr/share/${project.name}/libs</prefix>
                                     </mapper>
                                 </data>
-                                
+
                                 <data>
                                     <src>${project.build.directory}/../src/main/resources/logs</src>
                                     <type>directory</type>
