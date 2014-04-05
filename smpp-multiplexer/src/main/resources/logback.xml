@@ -19,7 +19,7 @@
         </encoder>
     </appender>
 
-    
+
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%.-19date [%.-1level] [%thread] %logger{20} %msg%n</pattern>
@@ -29,6 +29,7 @@
     <logger name="org.springframework" level="info" />
 
     <logger name="com.a1systems" level="trace" />
+    <logger name="com.a1systems.smpp.multiplexer.server.CleanupTask" level="info" />
 
     <root level="info">
         <appender-ref ref="console" />

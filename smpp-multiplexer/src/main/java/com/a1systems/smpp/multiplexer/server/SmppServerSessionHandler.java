@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,13 +41,15 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     protected ThreadPoolExecutor pool;
 
+    protected ScheduledExecutorService asyncPool;
+
     protected SmppServerHandlerImpl handler;
 
     protected List<Client> clients;
 
     protected AtomicLong index = new AtomicLong(0);
 
-    protected ConcurrentHashMap<String, Client> msgMap = new ConcurrentHashMap<String, Client>();
+    protected ConcurrentHashMap<String, MsgRoute> msgMap = new ConcurrentHashMap<String, MsgRoute>();
     protected String systemId;
     protected String password;
 
@@ -63,6 +67,10 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         this.handler = handler;
 
         this.pool = (ThreadPoolExecutor) pool;
+
+        this.asyncPool = Executors.newScheduledThreadPool(2);
+
+        this.asyncPool.scheduleAtFixedRate(new CleanupTask(msgMap), 60, 60, TimeUnit.SECONDS);
 
         this.systemId = systemId;
         this.password = password;
@@ -160,6 +168,10 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             clients.get(i).stop();
         }
 
+        msgMap = null;
+
+        asyncPool.shutdownNow();
+
         serverSession.close();
         serverSession.destroy();
     }
@@ -206,9 +218,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 logger.info("{}", key);
 
                 if (msgMap.containsKey(key)) {
-                    c = msgMap.get(key);
+                    MsgRoute route = msgMap.get(key);
+
+                    c = route.getClient();
                 } else {
-                    msgMap.put(key, c);
+                    MsgRoute route = new MsgRoute(c);
+
+                    msgMap.put(key, route);
                 }
 
             }
