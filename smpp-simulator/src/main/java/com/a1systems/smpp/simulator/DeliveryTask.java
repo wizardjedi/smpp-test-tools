@@ -2,10 +2,13 @@ package com.a1systems.smpp.simulator;
 
 import com.cloudhopper.commons.charset.CharsetUtil;
 import com.cloudhopper.commons.gsm.GsmUtil;
+import com.cloudhopper.commons.util.ByteArrayUtil;
+import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.pdu.DeliverSm;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.SubmitSm;
+import com.cloudhopper.smpp.tlv.Tlv;
 import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
@@ -41,22 +44,26 @@ public class DeliveryTask implements Runnable {
 
             DeliveryReceipt receipt = new DeliveryReceipt();
 
-            receipt.setMessageId(id);
+            receipt.setMessageId(String.valueOf(id));
 
             dsm.setSourceAddress(req.getDestAddress());
             dsm.setDestAddress(req.getSourceAddress());
             receipt.setSubmitDate(DateTime.now().minusSeconds(10));
             receipt.setDoneDate(DateTime.now());
 
-            Random r = new Random(DateTime.now().getMillis());
+            dsm.setEsmClass(SmppConstants.ESM_CLASS_MT_SMSC_DELIVERY_RECEIPT);
+            byte receiptState = (byte)((DateTime.now().getSecondOfMinute() % 7)+1);
 
-            receipt.setState((byte)(r.nextInt(7)+1));
+            receipt.setState(receiptState);
 
             String str = receipt.toShortMessage();
 
             byte[] msgBuffer = CharsetUtil.encode(str, CharsetUtil.CHARSET_GSM8);
 
             dsm.setShortMessage(msgBuffer);
+
+//            dsm.addOptionalParameter(new Tlv(SmppConstants.TAG_RECEIPTED_MSG_ID, ByteArrayUtil.toByteArray((int)id)));
+//            dsm.addOptionalParameter(new Tlv(SmppConstants.TAG_MSG_STATE, ByteArrayUtil.toByteArray(receiptState)));
 
             session.sendRequestPdu(dsm, TimeUnit.SECONDS.toMillis(60), false);
         } catch (Exception ex) {

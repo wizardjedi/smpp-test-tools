@@ -326,7 +326,7 @@
                 <version>${maven.dependency.plugin.version}</version>
             </plugin>
 
-            <plugin>
+            <!--plugin>
                 <artifactId>jdeb</artifactId>
                 <groupId>org.vafer</groupId>
                 <version>${jdeb.plugin.version}</version>
@@ -379,7 +379,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin-->
         </plugins>
     </build>
 </project>

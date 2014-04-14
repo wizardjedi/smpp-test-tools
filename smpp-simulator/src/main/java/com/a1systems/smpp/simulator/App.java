@@ -13,12 +13,12 @@ public class App {
 
     public static void main(String[] args) throws SmppChannelException, IOException {
         SmppServerConfiguration configuration = new SmppServerConfiguration();
-        configuration.setPort(2776);
+        configuration.setPort(2775);
         configuration.setMaxConnectionSize(10);
         configuration.setNonBlockingSocketsEnabled(true);
         configuration.setDefaultRequestExpiryTimeout(30000);
         configuration.setDefaultWindowMonitorInterval(15000);
-        configuration.setDefaultWindowSize(5);
+        configuration.setDefaultWindowSize(500);
         configuration.setDefaultWindowWaitTimeout(configuration.getDefaultRequestExpiryTimeout());
         configuration.setDefaultSessionCountersEnabled(true);
         configuration.setJmxEnabled(true);
@@ -28,15 +28,5 @@ public class App {
 
         logger.info("Starting SMPP server...");
         smppServer.start();
-        logger.info("SMPP server started");
-
-        System.out.println("Press any key to stop server");
-        System.in.read();
-
-        logger.info("Stopping SMPP server...");
-        smppServer.stop();
-        logger.info("SMPP server stopped");
-
-        logger.info("Server counters: {}", smppServer.getCounters());
     }
 }
