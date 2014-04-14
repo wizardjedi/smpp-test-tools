@@ -1,33 +1,22 @@
 package com.a1systems.smpp.multiplexer.server;
 
 import com.a1systems.smpp.multiplexer.Application;
-import com.a1systems.smpp.multiplexer.client.Client;
-import com.a1systems.smpp.multiplexer.client.ClientSessionHandler;
-import com.a1systems.smpp.multiplexer.client.RouteInfo;
-import com.cloudhopper.commons.gsm.GsmUtil;
+import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppServerHandler;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
+import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.impl.DefaultSmppSession;
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
-import com.cloudhopper.smpp.pdu.DeliverSm;
-import com.cloudhopper.smpp.pdu.DeliverSmResp;
-import com.cloudhopper.smpp.pdu.SubmitSm;
-import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppProcessingException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
-import com.cloudhopper.smpp.util.SmppUtil;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +26,11 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     protected SmppServerSession session;
 
+    protected SmppClient smppClient;
+
     protected ExecutorService pool;
+
+    protected ScheduledExecutorService asyncPool;
 
     List<Application.ConnectionEndpoint> endPoints;
 
@@ -45,6 +38,10 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     public SmppServerHandlerImpl(ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
         this.pool = pool;
+
+        asyncPool = Executors.newScheduledThreadPool(5);
+
+        this.smppClient = new DefaultSmppClient(pool, 30, asyncPool);
 
         this.endPoints = endPoints;
     }
@@ -66,12 +63,22 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         String systemId = sessionConfiguration.getSystemId();
         String password = sessionConfiguration.getPassword();
 
+        LoggingOptions lo = new LoggingOptions();
+        lo.setLogBytes(false);
+        lo.setLogPdu(false);
+
+        session.getConfiguration().setLoggingOptions(lo);
+
         try {
             SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, session, pool, this);
 
             handlers.put(sessionId, smppServerSessionHandler);
 
-            logger.debug("{}", smppServerSessionHandler);
+            String sessionName = systemId+"_"+password;
+
+            logger.info("Created session sess.id:{} and sess.name:{}", sessionId, sessionName);
+
+            session.getConfiguration().setName(sessionName);
 
             session.serverReady(smppServerSessionHandler);
         } catch (Exception ex) {
@@ -83,12 +90,32 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     @Override
     public void sessionDestroyed(Long sessionId, SmppServerSession session) {
-        logger.debug("Session destroy");
+        logger.debug("Session sess.id:{} sess.name:{} destroy", sessionId, session.getConfiguration().getName());
 
         handlers.get(sessionId).fireChannelUnexpectedlyClosed();
 
         session.close();
         session.destroy();
+    }
+
+    public SmppClient getSmppClient() {
+        return this.smppClient;
+    }
+
+    public ExecutorService getPool() {
+        return pool;
+    }
+
+    public void setPool(ExecutorService pool) {
+        this.pool = pool;
+    }
+
+    public ScheduledExecutorService getAsyncPool() {
+        return asyncPool;
+    }
+
+    public void setAsyncPool(ScheduledExecutorService asyncPool) {
+        this.asyncPool = asyncPool;
     }
 
 }

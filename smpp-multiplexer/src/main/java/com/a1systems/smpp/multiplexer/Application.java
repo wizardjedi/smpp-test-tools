@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,7 @@ public class Application {
         protected String host;
         protected int port;
         protected boolean hidden = false;
-        
+
         public static ConnectionEndpoint create(String host, int port, boolean hidden) {
             ConnectionEndpoint c = new ConnectionEndpoint();
 
@@ -38,7 +39,7 @@ public class Application {
         public void setHidden(boolean hidden) {
             this.hidden = hidden;
         }
-        
+
         public String getHost() {
             return host;
         }
@@ -72,7 +73,11 @@ public class Application {
     public void run(CliConfig config) throws SmppChannelException {
         logger.info("Application starting");
 
-        pool = Executors.newCachedThreadPool();
+        pool = Executors.newFixedThreadPool(60);
+
+        ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(5);
+
+        ExecutorService pool2 = Executors.newFixedThreadPool(60);
 
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
@@ -88,7 +93,7 @@ public class Application {
             String[] parts = endPoint.split(":");
 
             ConnectionEndpoint c;
-            
+
             if (
                 parts.length == 3
                 && parts[0].toLowerCase().equals("h")
@@ -103,7 +108,12 @@ public class Application {
             endPoints.add(c);
         }
 
-        DefaultSmppServer server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints));
+        serverConfig.setSystemId("SMPP-MUX");
+
+        serverConfig.setMaxConnectionSize(1);
+        serverConfig.setDefaultWindowSize(10000);
+
+        DefaultSmppServer server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints), pool2, asyncPool);
 
         logger.info("Smpp server starting");
 

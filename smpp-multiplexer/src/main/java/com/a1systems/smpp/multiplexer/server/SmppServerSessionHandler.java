@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -52,6 +53,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     protected ConcurrentHashMap<String, MsgRoute> msgMap = new ConcurrentHashMap<String, MsgRoute>();
     protected String systemId;
     protected String password;
+    protected ScheduledFuture<?> cleanUpFuture = null;
 
     public List<Client> getClients() {
         return clients;
@@ -68,9 +70,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         this.pool = (ThreadPoolExecutor) pool;
 
-        this.asyncPool = Executors.newScheduledThreadPool(2);
-
-        this.asyncPool.scheduleAtFixedRate(new CleanupTask(msgMap), 60, 60, TimeUnit.SECONDS);
+        this.asyncPool = handler.getAsyncPool();
 
         this.systemId = systemId;
         this.password = password;
@@ -89,12 +89,16 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             lo.setLogPdu(false);
             cfg.setLoggingOptions(lo);
 
-            Client client = new Client(cfg);
+            cfg.setWindowSize(10000);
+            cfg.setName(c.getHost()+":"+c.getPort()+":"+systemId+":"+password);
+
+            Client client = new Client(cfg, handler.getSmppClient());
 
             client.setHidden(c.isHidden());
-            
+
             client.setSessionHandler(new ClientSessionHandler(this, client));
 
+            client.setTimer(asyncPool);
             client.setPool(pool);
             client.start();
 
@@ -119,6 +123,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             } while ((!binded) || (System.currentTimeMillis() - start) > 30000);
 
             if (binded) {
+                cleanUpFuture = this.asyncPool.scheduleAtFixedRate(new CleanupTask(msgMap), 60, 60, TimeUnit.SECONDS);
+
                 logger.info("Create server session");
             } else {
                 logger.error("Timeout");
@@ -162,9 +168,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     @Override
     public void fireChannelUnexpectedlyClosed() {
-        logger.info("Server session destroyed");
-
         SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+
+        logger.info("Server session sess.name:{} destroyed", serverSession.getConfiguration().getName());
 
         for (int i=0;i<clients.size();i++) {
             clients.get(i).stop();
@@ -172,18 +178,22 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         msgMap = null;
 
-        asyncPool.shutdownNow();
+        if (cleanUpFuture != null) {
+            cleanUpFuture.cancel(true);
+        }
 
         serverSession.close();
         serverSession.destroy();
     }
 
     public void processSubmitSm(SubmitSm ssm) {
+        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+
         List<Client> aliveClients = new ArrayList<Client>(clients.size());
 
         for (int i=0;i<clients.size();i++) {
             Client c1 = clients.get(i);
-            
+
             if (
                 c1 != null
                 && !c1.isHidden()
@@ -197,8 +207,6 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             long id = Math.abs(index.incrementAndGet()) % aliveClients.size();
 
             Client c = aliveClients.get((int)id);
-
-            logger.info("Choosed client {}", c);
 
             RouteInfo ri = new RouteInfo();
 
@@ -223,7 +231,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                         +"_"
                         +parts;
 
-                logger.info("{}", key);
+                logger.info("Multipart message key:{}", key);
 
                 if (msgMap.containsKey(key)) {
                     MsgRoute route = msgMap.get(key);
@@ -239,6 +247,16 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             }
 
+            logger
+                .info(
+                    "sess.name:{} got ssm.seq_num:{} ssm.dest:{} ssm.src:{} -> {}",
+                    serverSession.getConfiguration().getName(),
+                    ssm.getSequenceNumber(),
+                    ssm.getDestAddress().getAddress(),
+                    ssm.getSourceAddress().getAddress(),
+                    c.toStringShortConnectionParams()
+                );
+
             ri.setClient(c);
 
             ssm.removeSequenceNumber();
@@ -248,15 +266,22 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public void processSubmitSmResp(SubmitSmResp submitSmResp) {
-        logger.info("Threads:{} task count:{} active:{}", pool.getPoolSize(), pool.getTaskCount(), pool.getActiveCount());
-
         pool.submit(new InputSender((SmppServerSession) sessionRef.get(), submitSmResp));
     }
 
     public void processDeliverSm(DeliverSm deliverSm) {
-        deliverSm.removeSequenceNumber();
+        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
 
-        logger.info("Threads:{} task count:{} active:{}", pool.getPoolSize(), pool.getTaskCount(), pool.getActiveCount());
+        logger
+            .info(
+                "dsm.seq_num:{} dsm.dest:{} dsm.src:{} -> {}",
+                deliverSm.getSequenceNumber(),
+                deliverSm.getDestAddress().getAddress(),
+                deliverSm.getSourceAddress().getAddress(),
+                serverSession.getConfiguration().getName()
+            );
+
+        deliverSm.removeSequenceNumber();
 
         pool.submit(new InputSender((SmppServerSession) sessionRef.get(), deliverSm));
     }
@@ -264,13 +289,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
         RouteInfo ri = (RouteInfo)deliverSmResp. getReferenceObject();
 
-        logger.info("{}", ri);
-
         Client c = ri.getClient();
 
         deliverSmResp.setSequenceNumber((int) ri.getOutputSequenceNumber());
-
-        logger.info("Threads:{} task count:{} active:{}", pool.getPoolSize(), pool.getTaskCount(), pool.getActiveCount());
 
         pool.submit(new OutputSender(c, (SmppServerSession) sessionRef.get(), deliverSmResp));
     }

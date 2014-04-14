@@ -3,6 +3,7 @@ package com.a1systems.smpp.multiplexer.server;
 import com.a1systems.smpp.multiplexer.client.Client;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSession;
+import com.cloudhopper.smpp.pdu.DeliverSmResp;
 import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
@@ -38,6 +39,8 @@ public class OutputSender implements Runnable {
                 if (pdu instanceof PduRequest) {
                     session.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(60), false);
                 } else {
+                    DeliverSmResp dsmr = (DeliverSmResp)pdu;
+
                     session.sendResponsePdu((PduResponse)pdu);
                 }
             } catch (Exception ex) {

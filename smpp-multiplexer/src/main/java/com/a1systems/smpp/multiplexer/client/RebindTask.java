@@ -2,6 +2,7 @@ package com.a1systems.smpp.multiplexer.client;
 
 import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppSession;
+import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.type.SmppBindException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
@@ -24,7 +25,9 @@ public class RebindTask implements Runnable {
         if (client.state == ClientState.BINDING) {
             SmppClient smppClient = client.getSmppClient();
             try {
-                log.debug("Try to bind...");
+                SmppSessionConfiguration cfg = client.getCfg();
+
+                log.debug("Try to bind host:[{}:{}] Credentials:[{}]:[{}]", cfg.getHost(), cfg.getPort(), cfg.getSystemId(), cfg.getPassword());
 
                 SmppSession session = smppClient.bind(client.getCfg(), client.getSessionHandler());
 

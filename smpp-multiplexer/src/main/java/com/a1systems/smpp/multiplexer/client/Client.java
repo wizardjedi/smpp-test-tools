@@ -30,7 +30,7 @@ public class Client {
     protected SmppServerSession serverSession;
 
     protected boolean hidden = false;
-    
+
     protected SmppClient smppClient;
 
     protected ScheduledExecutorService timer;
@@ -50,17 +50,23 @@ public class Client {
     protected DateTimeZone timeZone = DateTimeZone.getDefault();
 
     public Client(SmppSessionConfiguration cfg) {
+        this(cfg, null);
+    }
+
+    public Client(SmppSessionConfiguration cfg, SmppClient smppClient) {
         this.cfg = cfg;
+
+        this.smppClient = smppClient;
 
         this.state = ClientState.IDLE;
     }
 
     public void start() {
-        log.debug("Starting client");
+        log.debug("Starting client {}", this.toStringConnectionParams());
 
-        this.smppClient = new DefaultSmppClient();
-
-        this.rateLimiter = RateLimiter.create(this.speed);
+        if (smppClient == null) {
+            this.smppClient = new DefaultSmppClient();
+        }
 
         if (this.timer == null) {
             this.timer = Executors.newScheduledThreadPool(2);
@@ -121,20 +127,27 @@ public class Client {
         if (this.elinkTask != null) {
             this.elinkTask.cancel(true);
         }
-        
+
         if (this.rebindTask != null) {
             this.rebindTask.cancel(true);
         }
-        
+
+        if (session != null) {
+            session.unbind(TimeUnit.SECONDS.toMillis(30));
+            session.close();
+        }
+        //session.destroy();
+
+        /*
         if (timer != null){
             this.timer.shutdown();
-            
+
             this.timer = null;
         }
 
         if (this.smppClient != null) {
             this.smppClient.destroy();
-        }
+        }*/
     }
 
     public boolean isHidden() {
@@ -144,7 +157,7 @@ public class Client {
     public void setHidden(boolean hidden) {
         this.hidden = hidden;
     }
-    
+
     public SmppServerSession getServerSession() {
         return serverSession;
     }
@@ -250,5 +263,11 @@ public class Client {
         this.timer = timer;
     }
 
+    public String toStringConnectionParams() {
+        return cfg.getHost()+":"+cfg.getPort()+":["+cfg.getSystemId()+":"+cfg.getPassword()+"]";
+    }
 
+    public String toStringShortConnectionParams() {
+        return cfg.getHost()+":"+cfg.getPort();
+    }
 }
