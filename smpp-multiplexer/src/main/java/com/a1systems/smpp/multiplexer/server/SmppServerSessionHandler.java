@@ -75,7 +75,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         this.systemId = systemId;
         this.password = password;
 
-        clients = new ArrayList<>();
+        clients = new ArrayList<Client>();
 
         for (Application.ConnectionEndpoint c : handler.endPoints) {
             SmppSessionConfiguration cfg = new SmppSessionConfiguration();
@@ -91,6 +91,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             Client client = new Client(cfg);
 
+            client.setHidden(c.isHidden());
+            
             client.setSessionHandler(new ClientSessionHandler(this, client));
 
             client.setPool(pool);
@@ -114,7 +116,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 for (int i = 0; i < clients.size(); i++) {
                     binded |= (clients.get(i).getSession() != null);
                 }
-            } while ((!binded) || (System.currentTimeMillis() - start) > 30_000);
+            } while ((!binded) || (System.currentTimeMillis() - start) > 30000);
 
             if (binded) {
                 logger.info("Create server session");
@@ -177,11 +179,17 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public void processSubmitSm(SubmitSm ssm) {
-        List<Client> aliveClients = new ArrayList<>(clients.size());
+        List<Client> aliveClients = new ArrayList<Client>(clients.size());
 
         for (int i=0;i<clients.size();i++) {
-            if (clients.get(i).getSession() != null) {
-                aliveClients.add(clients.get(i));
+            Client c1 = clients.get(i);
+            
+            if (
+                c1 != null
+                && !c1.isHidden()
+                && c1.getSession() != null
+            ) {
+                aliveClients.add(c1);
             }
         }
 

@@ -27,8 +27,8 @@
 
         <metrics.version>3.0.2</metrics.version>
 
-        <mcp.source.version>1.7</mcp.source.version>
-        <mcp.target.version>1.7</mcp.target.version>
+        <mcp.source.version>1.6</mcp.source.version>
+        <mcp.target.version>1.6</mcp.target.version>
         <mcp.version>3.1</mcp.version>
 
         <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>

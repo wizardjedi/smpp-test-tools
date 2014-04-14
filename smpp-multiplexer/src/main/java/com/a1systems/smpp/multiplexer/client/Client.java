@@ -29,6 +29,8 @@ public class Client {
 
     protected SmppServerSession serverSession;
 
+    protected boolean hidden = false;
+    
     protected SmppClient smppClient;
 
     protected ScheduledExecutorService timer;
@@ -42,7 +44,7 @@ public class Client {
 
     protected ExecutorService pool;
 
-    protected int speed = 30;
+    protected int speed = 3000;
     protected RateLimiter rateLimiter;
 
     protected DateTimeZone timeZone = DateTimeZone.getDefault();
@@ -135,6 +137,14 @@ public class Client {
         }
     }
 
+    public boolean isHidden() {
+        return hidden;
+    }
+
+    public void setHidden(boolean hidden) {
+        this.hidden = hidden;
+    }
+    
     public SmppServerSession getServerSession() {
         return serverSession;
     }

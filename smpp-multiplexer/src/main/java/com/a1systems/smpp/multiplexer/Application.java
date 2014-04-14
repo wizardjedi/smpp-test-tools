@@ -19,16 +19,26 @@ public class Application {
     public static class ConnectionEndpoint {
         protected String host;
         protected int port;
-
-        public static ConnectionEndpoint create(String host, int port) {
+        protected boolean hidden = false;
+        
+        public static ConnectionEndpoint create(String host, int port, boolean hidden) {
             ConnectionEndpoint c = new ConnectionEndpoint();
 
             c.setHost(host);
             c.setPort(port);
+            c.setHidden(hidden);
 
             return c;
         }
 
+        public boolean isHidden() {
+            return hidden;
+        }
+
+        public void setHidden(boolean hidden) {
+            this.hidden = hidden;
+        }
+        
         public String getHost() {
             return host;
         }
@@ -47,7 +57,7 @@ public class Application {
 
         @Override
         public String toString() {
-            return "ConnectionEndpoint{" + "host=" + host + ", port=" + port + '}';
+            return "ConnectionEndpoint{" + "host=" + host + ", port=" + port + ", hidden=" + hidden + '}';
         }
     }
 
@@ -77,7 +87,16 @@ public class Application {
 
             String[] parts = endPoint.split(":");
 
-            ConnectionEndpoint c = ConnectionEndpoint.create(parts[0], Integer.parseInt(parts[1]));
+            ConnectionEndpoint c;
+            
+            if (
+                parts.length == 3
+                && parts[0].toLowerCase().equals("h")
+            ) {
+                c = ConnectionEndpoint.create(parts[1], Integer.parseInt(parts[2]), true);
+            } else {
+                c = ConnectionEndpoint.create(parts[0], Integer.parseInt(parts[1]), false);
+            }
 
             logger.info("Use end point:{}", c);
 

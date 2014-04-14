@@ -14,7 +14,7 @@ class CleanupTask implements Runnable {
     protected WeakReference<ConcurrentHashMap<String, MsgRoute>> map;
 
     public CleanupTask(ConcurrentHashMap<String, MsgRoute> msgMap) {
-        this.map = new WeakReference<>(msgMap);
+        this.map = new WeakReference<ConcurrentHashMap<String, MsgRoute>>(msgMap);
     }
 
     @Override
