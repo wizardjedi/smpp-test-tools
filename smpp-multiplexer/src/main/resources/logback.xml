@@ -15,7 +15,7 @@
             </timeBasedFileNamingAndTriggeringPolicy>
         </rollingPolicy>
         <encoder>
-            <pattern>%.-19date [%.-1level] [%thread] %logger{20} %msg%n</pattern>
+            <pattern>%.-19date %msg%n</pattern>
         </encoder>
     </appender>
 
