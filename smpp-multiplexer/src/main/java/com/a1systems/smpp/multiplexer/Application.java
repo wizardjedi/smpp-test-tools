@@ -110,7 +110,7 @@ public class Application {
 
         serverConfig.setSystemId("SMPP-MUX");
 
-        serverConfig.setMaxConnectionSize(1);
+        serverConfig.setMaxConnectionSize(10);
         serverConfig.setDefaultWindowSize(10000);
 
         DefaultSmppServer server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints), pool2, asyncPool);
