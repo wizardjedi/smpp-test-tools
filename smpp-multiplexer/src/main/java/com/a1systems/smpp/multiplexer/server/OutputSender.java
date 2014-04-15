@@ -2,12 +2,10 @@ package com.a1systems.smpp.multiplexer.server;
 
 import com.a1systems.smpp.multiplexer.client.Client;
 import com.cloudhopper.smpp.SmppServerSession;
-import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.pdu.DeliverSmResp;
 import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
-import com.cloudhopper.smpp.pdu.SubmitSm;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

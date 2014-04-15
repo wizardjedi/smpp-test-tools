@@ -19,11 +19,11 @@ import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.util.SmppUtil;
-import com.codahale.metrics.MetricRegistry;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -37,7 +37,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     public static final Logger logger = LoggerFactory.getLogger(SmppServerSessionHandler.class);
 
-    private WeakReference<SmppSession> sessionRef;
+    protected final WeakReference<SmppSession> sessionRef;
 
     protected ThreadPoolExecutor pool;
 
@@ -53,6 +53,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     protected String systemId;
     protected String password;
     protected ScheduledFuture<?> cleanUpFuture = null;
+
+    protected CopyOnWriteArrayList<Client> aliveClients = new CopyOnWriteArrayList<Client>();
 
     public List<Client> getClients() {
         return clients;
@@ -95,6 +97,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             client.setHidden(c.isHidden());
 
+            client.setServerSessionHandler(this);
             client.setSessionHandler(new ClientSessionHandler(this, client));
 
             client.setTimer(asyncPool);
@@ -117,7 +120,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 TimeUnit.MILLISECONDS.sleep(500);
 
                 for (Client client : clients) {
-                    binded |= (client.getSession() != null);
+                    binded |= client.isBound();
                 }
             } while ((!binded) || (System.currentTimeMillis() - start) > 30000);
 
@@ -196,17 +199,6 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     public void processSubmitSm(SubmitSm ssm) {
         SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
-
-        List<Client> aliveClients = new ArrayList<Client>(clients.size());
-
-        for (Client c1 : clients) {
-            if (c1 != null
-                && !c1.isHidden()
-                && c1.getSession() != null
-            ) {
-                aliveClients.add(c1);
-            }
-        }
 
         if (aliveClients.size() > 0) {
             long id = Math.abs(index.incrementAndGet()) % aliveClients.size();
@@ -303,6 +295,18 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         deliverSmResp.setSequenceNumber((int) ri.getOutputSequenceNumber());
 
         pool.submit(new OutputSender(c, (SmppServerSession) sessionRef.get(), deliverSmResp));
+    }
+
+    public void clientBinding(Client client) {
+        if (!client.isHidden()) {
+            aliveClients.remove(client);
+        }
+    }
+
+    public void clientBound(Client client) {
+        if (!client.isHidden()) {
+            aliveClients.add(client);
+        }
     }
 
 }

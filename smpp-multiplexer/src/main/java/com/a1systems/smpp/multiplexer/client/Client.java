@@ -1,6 +1,6 @@
 package com.a1systems.smpp.multiplexer.client;
 
-import com.a1systems.smpp.multiplexer.client.ClientState;
+import com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler;
 import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSession;
@@ -59,6 +59,7 @@ public class Client {
 
     protected String connectionString;
     protected String shortConnectonString;
+    protected SmppServerSessionHandler serverSessionHandler;
 
     public Client(SmppSessionConfiguration cfg) {
         this(cfg, null);
@@ -98,18 +99,26 @@ public class Client {
     }
 
     public void bind() {
-        if (this.state == ClientState.BOUND
-                || this.state == ClientState.IDLE) {
+        if (
+            this.state == ClientState.BOUND
+            || this.state == ClientState.IDLE
+        ) {
             log.debug("{} Binding state", toStringConnectionParams());
 
-            if (this.session != null
-                    && this.session.isBound()) {
+            if (
+                this.session != null
+                && this.session.isBound()
+            ) {
                 this.session.close();
                 this.session.destroy();
                 this.session = null;
             }
 
             this.state = ClientState.BINDING;
+
+            if (serverSessionHandler != null) {
+                serverSessionHandler.clientBinding(this);
+            }
 
             if (elinkTask != null) {
                 this.elinkTask.cancel(true);
@@ -130,6 +139,10 @@ public class Client {
                 this.rebindTask.cancel(true);
             }
             runElinkTask();
+
+            if (serverSessionHandler != null) {
+                serverSessionHandler.clientBound(this);
+            }
         }
     }
 
@@ -327,5 +340,9 @@ public class Client {
         session.sendResponsePdu(pduResponse);
 
         this.lastSendMillis = System.currentTimeMillis();
+    }
+
+    public void setServerSessionHandler(SmppServerSessionHandler handler) {
+        this.serverSessionHandler = handler;
     }
 }
