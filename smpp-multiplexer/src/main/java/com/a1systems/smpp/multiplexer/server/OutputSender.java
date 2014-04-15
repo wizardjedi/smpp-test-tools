@@ -29,19 +29,14 @@ public class OutputSender implements Runnable {
 
     @Override
     public void run() {
-        SmppSession session = client.getSession();
-
-        // Todo: check is it needed?
-        // pdu.removeSequenceNumber();
-
-        if (session != null && session.isBound()) {
+        if (client.isBound()) {
             try {
                 if (pdu instanceof PduRequest) {
-                    session.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(60), false);
+                    client.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(60), false);
                 } else {
                     DeliverSmResp dsmr = (DeliverSmResp)pdu;
 
-                    session.sendResponsePdu((PduResponse)pdu);
+                    client.sendResponsePdu((PduResponse)pdu);
                 }
             } catch (Exception ex) {
                 logger.error("{}", ex);

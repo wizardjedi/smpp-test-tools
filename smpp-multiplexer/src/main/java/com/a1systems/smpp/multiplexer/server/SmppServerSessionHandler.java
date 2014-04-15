@@ -89,7 +89,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setLoggingOptions(lo);
 
             cfg.setWindowSize(10000);
-            cfg.setName(c.getHost()+":"+c.getPort()+":"+systemId+":"+password);
+            cfg.setName(c.getHost() + ":" + c.getPort() + ":" + systemId + ":" + password);
 
             Client client = new Client(cfg, handler.getSmppClient());
 
@@ -146,8 +146,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         }
 
         if (pduRequest instanceof SubmitSm) {
-            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_ssm").mark();
-            
+            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_ssm").mark();
+
             processSubmitSm((SubmitSm) pduRequest);
         }
 
@@ -159,8 +159,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         PduResponse pduResponse = pdu.getResponse();
 
         if (pduResponse instanceof DeliverSmResp) {
-            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_dsm").mark();
-            
+            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_dsm").mark();
+
             RouteInfo ri = (RouteInfo) pdu.getRequest().getReferenceObject();
 
             pduResponse.setReferenceObject(ri);
@@ -179,11 +179,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             client.stop();
         }
 
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_ssm");
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_dsm");
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_ssmr");
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_dsmr");
-        
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_ssm");
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_dsm");
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_ssmr");
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_dsmr");
+
         msgMap = null;
 
         if (cleanUpFuture != null) {
@@ -200,11 +200,10 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         List<Client> aliveClients = new ArrayList<Client>(clients.size());
 
         for (Client c1 : clients) {
-            if (
-                    c1 != null
-                    && !c1.isHidden()
-                    && c1.getSession() != null
-                    ) {
+            if (c1 != null
+                && !c1.isHidden()
+                && c1.getSession() != null
+            ) {
                 aliveClients.add(c1);
             }
         }
@@ -212,7 +211,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         if (aliveClients.size() > 0) {
             long id = Math.abs(index.incrementAndGet()) % aliveClients.size();
 
-            Client c = aliveClients.get((int)id);
+            Client c = aliveClients.get((int) id);
 
             RouteInfo ri = new RouteInfo();
 
@@ -228,14 +227,14 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 long smsId = ServerUtil.getSmsId(udh);
                 long parts = ServerUtil.getParts(udh);
 
-                String key =
-                    ssm.getDestAddress().getAddress()
-                        +"_"
-                        +ssm.getSourceAddress().getAddress()
-                        +"_"
-                        +smsId
-                        +"_"
-                        +parts;
+                String key
+                    = ssm.getDestAddress().getAddress()
+                    + "_"
+                    + ssm.getSourceAddress().getAddress()
+                    + "_"
+                    + smsId
+                    + "_"
+                    + parts;
 
                 logger.info("Multipart message key:{}", key);
 
@@ -272,8 +271,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public void processSubmitSmResp(SubmitSmResp submitSmResp) {
-        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_ssmr").mark();
-        
+        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_ssmr").mark();
+
         pool.submit(new InputSender((SmppServerSession) sessionRef.get(), submitSmResp));
     }
 
@@ -295,9 +294,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
-        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_dsmr").mark();
-        
-        RouteInfo ri = (RouteInfo)deliverSmResp. getReferenceObject();
+        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_dsmr").mark();
+
+        RouteInfo ri = (RouteInfo) deliverSmResp.getReferenceObject();
 
         Client c = ri.getClient();
 
@@ -305,7 +304,5 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         pool.submit(new OutputSender(c, (SmppServerSession) sessionRef.get(), deliverSmResp));
     }
-
-
 
 }

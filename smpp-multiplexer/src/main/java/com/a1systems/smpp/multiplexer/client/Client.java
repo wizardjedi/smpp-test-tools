@@ -7,6 +7,12 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.pdu.PduRequest;
+import com.cloudhopper.smpp.pdu.PduResponse;
+import com.cloudhopper.smpp.type.RecoverablePduException;
+import com.cloudhopper.smpp.type.SmppChannelException;
+import com.cloudhopper.smpp.type.SmppTimeoutException;
+import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import com.google.common.util.concurrent.RateLimiter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +32,8 @@ public class Client {
     protected ClientState state;
 
     protected volatile SmppSession session;
+
+    protected volatile long lastSendMillis;
 
     protected SmppServerSession serverSession;
 
@@ -49,6 +57,9 @@ public class Client {
 
     protected DateTimeZone timeZone = DateTimeZone.getDefault();
 
+    protected String connectionString;
+    protected String shortConnectonString;
+
     public Client(SmppSessionConfiguration cfg) {
         this(cfg, null);
     }
@@ -59,6 +70,9 @@ public class Client {
         this.smppClient = smppClient;
 
         this.state = ClientState.IDLE;
+
+        connectionString = cfg.getHost()+":"+cfg.getPort()+":["+cfg.getSystemId()+":"+cfg.getPassword()+"]";
+        shortConnectonString = cfg.getHost()+":"+cfg.getPort();
     }
 
     public void start() {
@@ -80,13 +94,13 @@ public class Client {
     }
 
     private void runElinkTask() {
-        //this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
+        this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
     }
 
     public void bind() {
         if (this.state == ClientState.BOUND
                 || this.state == ClientState.IDLE) {
-            log.debug("Binding state");
+            log.debug("{} Binding state", toStringConnectionParams());
 
             if (this.session != null
                     && this.session.isBound()) {
@@ -106,7 +120,7 @@ public class Client {
 
     public void bound(SmppSession session) {
         if (this.state == ClientState.BINDING) {
-            log.debug("Bound state");
+            log.debug("{} Bound state", toStringConnectionParams());
 
             this.state = ClientState.BOUND;
 
@@ -120,7 +134,7 @@ public class Client {
     }
 
     public void stop() {
-        log.debug("Stopping");
+        log.debug("{} Stopping", toStringConnectionParams());
 
         this.state = ClientState.STOPPING;
 
@@ -148,6 +162,30 @@ public class Client {
         if (this.smppClient != null) {
             this.smppClient.destroy();
         }*/
+    }
+
+    public ClientState getState() {
+        return state;
+    }
+
+    public boolean isIdle() {
+        return state == ClientState.IDLE;
+    }
+
+    public boolean isBinding() {
+        return state == ClientState.BINDING;
+    }
+
+    public boolean isBound() {
+        return state == ClientState.BOUND;
+    }
+
+    public boolean isStopping() {
+        return state == ClientState.STOPPING;
+    }
+
+    public boolean isStopped() {
+        return state == ClientState.STOPPED;
     }
 
     public boolean isHidden() {
@@ -264,10 +302,30 @@ public class Client {
     }
 
     public String toStringConnectionParams() {
-        return cfg.getHost()+":"+cfg.getPort()+":["+cfg.getSystemId()+":"+cfg.getPassword()+"]";
+        return connectionString;
     }
 
     public String toStringShortConnectionParams() {
-        return cfg.getHost()+":"+cfg.getPort();
+        return shortConnectonString;
+    }
+
+    public long getLastSendMillis() {
+        return lastSendMillis;
+    }
+
+    public void setLastSendMillis(long lastSendMillis) {
+        this.lastSendMillis = lastSendMillis;
+    }
+
+    public void sendRequestPdu(PduRequest pduRequest, long toMillis, boolean async) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
+        session.sendRequestPdu(pduRequest, toMillis, async);
+
+        this.lastSendMillis = System.currentTimeMillis();
+    }
+
+    public void sendResponsePdu(PduResponse pduResponse) throws RecoverablePduException, UnrecoverablePduException, SmppChannelException, InterruptedException {
+        session.sendResponsePdu(pduResponse);
+
+        this.lastSendMillis = System.currentTimeMillis();
     }
 }

@@ -22,7 +22,7 @@ public class RebindTask implements Runnable {
 
     @Override
     public void run() {
-        if (client.state == ClientState.BINDING) {
+        if (client.isBinding()) {
             SmppClient smppClient = client.getSmppClient();
             try {
                 SmppSessionConfiguration cfg = client.getCfg();
@@ -33,15 +33,15 @@ public class RebindTask implements Runnable {
 
                 client.bound(session);
             } catch (SmppTimeoutException ex) {
-                log.debug("{}", ex);
+                log.error("{}", ex.getMessage());
             } catch (SmppChannelException ex) {
-                log.debug("{}", ex);
+                log.error("{}", ex.getMessage());
             } catch (SmppBindException ex) {
-                log.debug("{}", ex);
+                log.error("{}", ex.getMessage());
             } catch (UnrecoverablePduException ex) {
-                log.debug("{}", ex);
+                log.error("{}", ex.getMessage());
             } catch (InterruptedException ex) {
-                log.debug("{}", ex);
+                log.error("{}", ex.getMessage());
             }
         }
     }

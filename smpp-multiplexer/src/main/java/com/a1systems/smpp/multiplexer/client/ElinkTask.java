@@ -21,7 +21,10 @@ public class ElinkTask implements Runnable {
 
     @Override
     public void run() {
-        if (client.state == ClientState.BOUND) {
+        if (
+            client.isBound()
+            && System.currentTimeMillis() - client.getLastSendMillis() > TimeUnit.SECONDS.toMillis(client.getElinkPeriod())
+        ) {
             SmppSession session = client.getSession();
 
             log.debug("Send elink");

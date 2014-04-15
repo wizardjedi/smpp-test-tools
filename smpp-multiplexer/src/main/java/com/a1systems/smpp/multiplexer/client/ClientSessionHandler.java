@@ -1,15 +1,20 @@
 package com.a1systems.smpp.multiplexer.client;
 
-import com.a1systems.smpp.multiplexer.server.SmppServerHandlerImpl;
 import com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler;
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.DeliverSm;
+import com.cloudhopper.smpp.pdu.EnquireLink;
+import com.cloudhopper.smpp.pdu.EnquireLinkResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientSessionHandler extends DefaultSmppSessionHandler {
+    public static final Logger logger = LoggerFactory.getLogger(ClientSessionHandler.class);
+
     protected SmppServerSessionHandler serverHandler;
 
     protected Client client;
@@ -35,6 +40,10 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
             return ;
         }
 
+        if (response instanceof EnquireLinkResp) {
+            return ;
+        }
+
         super.fireExpectedPduResponseReceived(pduAsyncResponse);
     }
 
@@ -56,7 +65,20 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
     }
 
     @Override
+    public void firePduRequestExpired(PduRequest pduRequest) {
+        if (pduRequest instanceof EnquireLink) {
+            logger.error("{} No response to elink. Session dropped.", client.toStringConnectionParams());
+
+            fireChannelUnexpectedlyClosed();
+        }
+    }
+
+
+
+    @Override
     public void fireChannelUnexpectedlyClosed() {
+        logger.error("{} Session unexpectedly closed.", client.toStringConnectionParams());
+
         client.bind();
     }
 }
