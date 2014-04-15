@@ -12,6 +12,8 @@ import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppProcessingException;
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -35,11 +37,17 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
     List<Application.ConnectionEndpoint> endPoints;
 
     protected ConcurrentHashMap<Long, SmppServerSessionHandler> handlers = new ConcurrentHashMap<Long, SmppServerSessionHandler>();
+    protected MetricRegistry metricsRegistry;
 
     public SmppServerHandlerImpl(ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
         this.pool = pool;
 
         asyncPool = Executors.newScheduledThreadPool(5);
+
+        metricsRegistry = new MetricRegistry();
+
+        final JmxReporter reporter = JmxReporter.forRegistry(metricsRegistry).build();
+        reporter.start();
 
         this.smppClient = new DefaultSmppClient(pool, 30, asyncPool);
 
@@ -74,7 +82,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
             handlers.put(sessionId, smppServerSessionHandler);
 
-            String sessionName = systemId+"_"+password;
+            String sessionName = systemId + "_" + password + "_" + sessionId;
 
             logger.info("Created session sess.id:{} and sess.name:{}", sessionId, sessionName);
 
@@ -118,4 +126,11 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         this.asyncPool = asyncPool;
     }
 
+    public MetricRegistry getMetricsRegistry() {
+        return metricsRegistry;
+    }
+
+    public void setMetricsRegistry(MetricRegistry metricsRegistry) {
+        this.metricsRegistry = metricsRegistry;
+    }
 }

@@ -4,7 +4,6 @@ import com.a1systems.smpp.multiplexer.Application;
 import com.a1systems.smpp.multiplexer.client.Client;
 import com.a1systems.smpp.multiplexer.client.ClientSessionHandler;
 import com.a1systems.smpp.multiplexer.client.RouteInfo;
-import static com.a1systems.smpp.multiplexer.server.SmppServerHandlerImpl.logger;
 import com.cloudhopper.commons.gsm.GsmUtil;
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.SmppServerSession;
@@ -20,12 +19,12 @@ import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.util.SmppUtil;
+import com.codahale.metrics.MetricRegistry;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -105,8 +104,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             clients.add(client);
         }
 
-        for (int i = 0; i < clients.size(); i++) {
-            clients.get(i).setServerSession((SmppServerSession) session);
+        for (Client client : clients) {
+            client.setServerSession((SmppServerSession) session);
         }
 
         boolean binded = false;
@@ -117,8 +116,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             do {
                 TimeUnit.MILLISECONDS.sleep(500);
 
-                for (int i = 0; i < clients.size(); i++) {
-                    binded |= (clients.get(i).getSession() != null);
+                for (Client client : clients) {
+                    binded |= (client.getSession() != null);
                 }
             } while ((!binded) || (System.currentTimeMillis() - start) > 30000);
 
@@ -147,6 +146,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         }
 
         if (pduRequest instanceof SubmitSm) {
+            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_ssm").mark();
+            
             processSubmitSm((SubmitSm) pduRequest);
         }
 
@@ -158,6 +159,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         PduResponse pduResponse = pdu.getResponse();
 
         if (pduResponse instanceof DeliverSmResp) {
+            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_dsm").mark();
+            
             RouteInfo ri = (RouteInfo) pdu.getRequest().getReferenceObject();
 
             pduResponse.setReferenceObject(ri);
@@ -172,10 +175,15 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         logger.info("Server session sess.name:{} destroyed", serverSession.getConfiguration().getName());
 
-        for (int i=0;i<clients.size();i++) {
-            clients.get(i).stop();
+        for (Client client : clients) {
+            client.stop();
         }
 
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_ssm");
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_dsm");
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_ssmr");
+        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName()+"_dsmr");
+        
         msgMap = null;
 
         if (cleanUpFuture != null) {
@@ -191,14 +199,12 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         List<Client> aliveClients = new ArrayList<Client>(clients.size());
 
-        for (int i=0;i<clients.size();i++) {
-            Client c1 = clients.get(i);
-
+        for (Client c1 : clients) {
             if (
-                c1 != null
-                && !c1.isHidden()
-                && c1.getSession() != null
-            ) {
+                    c1 != null
+                    && !c1.isHidden()
+                    && c1.getSession() != null
+                    ) {
                 aliveClients.add(c1);
             }
         }
@@ -266,6 +272,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public void processSubmitSmResp(SubmitSmResp submitSmResp) {
+        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_ssmr").mark();
+        
         pool.submit(new InputSender((SmppServerSession) sessionRef.get(), submitSmResp));
     }
 
@@ -287,6 +295,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
+        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName()+"_dsmr").mark();
+        
         RouteInfo ri = (RouteInfo)deliverSmResp. getReferenceObject();
 
         Client c = ri.getClient();
