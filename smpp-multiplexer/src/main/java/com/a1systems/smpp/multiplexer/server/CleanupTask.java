@@ -19,11 +19,13 @@ class CleanupTask implements Runnable {
 
     @Override
     public void run() {
-        logger.debug("Started cleanup task");
+        logger.info("Started cleanup task");
 
         if (map.get() != null) {
             ConcurrentHashMap<String, MsgRoute> msgMap = map.get();
 
+            int dropped=0;
+            
             for (Entry<String, MsgRoute> entry:msgMap.entrySet()) {
                 MsgRoute route = entry.getValue();
 
@@ -31,8 +33,12 @@ class CleanupTask implements Runnable {
                     logger.debug("Remove entry:{}", entry.getKey());
 
                     msgMap.remove(entry.getKey());
+                    
+                    dropped++;
                 }
             }
+            
+            logger.info("Removed {} items", dropped);
         }
     }
 
