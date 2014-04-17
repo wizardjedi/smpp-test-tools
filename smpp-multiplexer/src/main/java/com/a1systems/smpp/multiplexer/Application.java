@@ -4,6 +4,7 @@ import com.a1systems.smpp.multiplexer.server.SmppServerHandlerImpl;
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
+import io.netty.channel.nio.NioEventLoopGroup;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -73,11 +74,9 @@ public class Application {
     public void run(CliConfig config) throws SmppChannelException {
         logger.info("Application starting");
 
-        pool = Executors.newFixedThreadPool(60);
+        pool = Executors.newFixedThreadPool(10);
 
         ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(5);
-
-        ExecutorService pool2 = Executors.newFixedThreadPool(60);
 
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
@@ -108,10 +107,13 @@ public class Application {
 
         serverConfig.setSystemId("SMPP-MUX");
 
-        serverConfig.setMaxConnectionSize(10);
+        serverConfig.setMaxConnectionSize(300);
         serverConfig.setDefaultWindowSize(10000);
 
-        DefaultSmppServer server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints), pool2, asyncPool);
+        NioEventLoopGroup group = new NioEventLoopGroup();
+        
+        DefaultSmppServer server;
+        server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints), asyncPool, group, group);
 
         logger.info("Smpp server starting");
 

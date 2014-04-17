@@ -38,6 +38,23 @@
         <args4j.version>2.0.26</args4j.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>libs-release</name>
+            <url>http://artifactory.a1s/artifactory/libs-release</url>
+        </repository>
+        <repository>
+            <snapshots />
+            <id>snapshots</id>
+            <name>libs-snapshot</name>
+            <url>http://artifactory.a1s/artifactory/libs-snapshot</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- JUnit dependency -->
         <dependency>
@@ -50,17 +67,23 @@
         <!-- ARGS4J -->
 
         <dependency>
-			<groupId>args4j</groupId>
-			<artifactId>args4j</artifactId>
-			<version>${args4j.version}</version>
-		</dependency>
+            <groupId>args4j</groupId>
+            <artifactId>args4j</artifactId>
+            <version>${args4j.version}</version>
+        </dependency>
 
         <!-- Cloudhopper smpp library -->
 
-        <dependency>
+        <!--dependency>
             <groupId>com.cloudhopper</groupId>
             <artifactId>ch-smpp</artifactId>
             <version>${ch.smpp.version}</version>
+        </dependency-->
+        
+        <dependency>
+            <groupId>com.cloudhopper</groupId>
+            <artifactId>a1s-ch-smpp</artifactId>
+            <version>6.0.0-20140409.105831-1</version>
         </dependency>
 
         <dependency>

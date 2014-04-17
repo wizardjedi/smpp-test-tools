@@ -13,6 +13,7 @@ import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppProcessingException;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
+import io.netty.channel.nio.NioEventLoopGroup;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +49,9 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         final JmxReporter reporter = JmxReporter.forRegistry(metricsRegistry).build();
         reporter.start();
 
-        this.smppClient = new DefaultSmppClient(pool, 30, asyncPool);
+        NioEventLoopGroup nelg = new NioEventLoopGroup();
+        
+        this.smppClient = new DefaultSmppClient(nelg, asyncPool);
 
         this.endPoints = endPoints;
     }
