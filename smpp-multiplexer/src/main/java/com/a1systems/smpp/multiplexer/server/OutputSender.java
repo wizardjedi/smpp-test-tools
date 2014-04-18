@@ -30,7 +30,7 @@ public class OutputSender implements Runnable {
         if (client.isBound()) {
             try {
                 if (pdu instanceof PduRequest) {
-                    client.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(60), false);
+                    client.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(300), false);
                 } else {
                     DeliverSmResp dsmr = (DeliverSmResp)pdu;
 
@@ -39,6 +39,12 @@ public class OutputSender implements Runnable {
             } catch (Exception ex) {
                 logger.error("{}", ex);
             }
+        } else {
+            logger
+                .error(
+                    "{} no session to send pdu.seq_num:{}", 
+                    client.toStringConnectionParams(), pdu.getSequenceNumber()
+                );
         }
     }
 

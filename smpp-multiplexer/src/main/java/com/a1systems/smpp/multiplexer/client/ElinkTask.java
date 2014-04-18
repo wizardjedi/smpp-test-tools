@@ -27,7 +27,7 @@ public class ElinkTask implements Runnable {
         ) {
             SmppSession session = client.getSession();
 
-            log.debug("Send elink");
+            log.debug("{} Send elink", client.toStringConnectionParams());
             try {
                 session.sendRequestPdu(new EnquireLink(), TimeUnit.SECONDS.toMillis(10), false);
             } catch (RecoverablePduException ex) {

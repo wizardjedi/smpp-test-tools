@@ -331,6 +331,8 @@ public class Client {
     }
 
     public void sendRequestPdu(PduRequest pduRequest, long toMillis, boolean async) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
+        //session.get
+        
         session.sendRequestPdu(pduRequest, toMillis, async);
 
         this.lastSendMillis = System.currentTimeMillis();

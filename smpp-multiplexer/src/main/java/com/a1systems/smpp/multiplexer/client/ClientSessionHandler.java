@@ -8,6 +8,7 @@ import com.cloudhopper.smpp.pdu.EnquireLink;
 import com.cloudhopper.smpp.pdu.EnquireLinkResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
+import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +31,8 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
 
         if (response instanceof SubmitSmResp) {
             PduRequest req = pduAsyncResponse.getRequest();
-
-            RouteInfo ri = (RouteInfo)req.getReferenceObject();
-
-            response.setSequenceNumber((int)ri.getInputSequenceNumber());
-
-            serverHandler.processSubmitSmResp((SubmitSmResp)response);
+            
+            serverHandler.processSubmitSmResp(req, (SubmitSmResp)response);
 
             return ;
         }
@@ -70,6 +67,13 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
             logger.error("{} No response to elink. Session dropped.", client.toStringConnectionParams());
 
             fireChannelUnexpectedlyClosed();
+        } else {
+            logger
+                .error(
+                    "{} no resp for pdu.seq_num:{}",
+                    client.toStringConnectionParams(), 
+                    pduRequest.getSequenceNumber()
+                );
         }
     }
 
