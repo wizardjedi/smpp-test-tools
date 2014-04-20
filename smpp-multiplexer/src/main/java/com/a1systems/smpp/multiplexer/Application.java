@@ -111,7 +111,7 @@ public class Application {
         serverConfig.setDefaultWindowSize(10000);
 
         NioEventLoopGroup group = new NioEventLoopGroup();
-        
+
         DefaultSmppServer server;
         server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints), asyncPool, group, group);
 

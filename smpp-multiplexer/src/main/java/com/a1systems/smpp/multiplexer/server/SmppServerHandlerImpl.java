@@ -50,7 +50,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         reporter.start();
 
         NioEventLoopGroup nelg = new NioEventLoopGroup();
-        
+
         this.smppClient = new DefaultSmppClient(nelg, asyncPool);
 
         this.endPoints = endPoints;

@@ -31,13 +31,15 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
 
         if (response instanceof SubmitSmResp) {
             PduRequest req = pduAsyncResponse.getRequest();
-            
+
             serverHandler.processSubmitSmResp(req, (SubmitSmResp)response);
 
             return ;
         }
 
         if (response instanceof EnquireLinkResp) {
+            logger.error("{} elink_resp", client.toStringConnectionParams());
+
             return ;
         }
 
@@ -71,7 +73,7 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
             logger
                 .error(
                     "{} no resp for pdu.seq_num:{}",
-                    client.toStringConnectionParams(), 
+                    client.toStringConnectionParams(),
                     pduRequest.getSequenceNumber()
                 );
         }

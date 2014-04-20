@@ -19,11 +19,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Client {
+
+    protected static AtomicLong clientNum;
+
+    static {
+        clientNum = new AtomicLong(0);
+    }
 
     public static final Logger log = LoggerFactory.getLogger(Client.class);
 
@@ -61,6 +68,8 @@ public class Client {
     protected String shortConnectonString;
     protected SmppServerSessionHandler serverSessionHandler;
 
+    protected String name;
+
     public Client(SmppSessionConfiguration cfg) {
         this(cfg, null);
     }
@@ -74,6 +83,8 @@ public class Client {
 
         connectionString = cfg.getHost()+":"+cfg.getPort()+":["+cfg.getSystemId()+":"+cfg.getPassword()+"]";
         shortConnectonString = cfg.getHost()+":"+cfg.getPort();
+
+        name = "c<"+clientNum.incrementAndGet()+">";
     }
 
     public void start() {
@@ -129,7 +140,7 @@ public class Client {
 
     public void bound(SmppSession session) {
         if (this.state == ClientState.BINDING) {
-            log.debug("{} Bound state", toStringConnectionParams());
+            log.debug("{} {} Bound state", getName(), toStringConnectionParams());
 
             this.state = ClientState.BOUND;
 
@@ -163,18 +174,6 @@ public class Client {
             session.unbind(TimeUnit.SECONDS.toMillis(30));
             session.close();
         }
-        //session.destroy();
-
-        /*
-        if (timer != null){
-            this.timer.shutdown();
-
-            this.timer = null;
-        }
-
-        if (this.smppClient != null) {
-            this.smppClient.destroy();
-        }*/
     }
 
     public ClientState getState() {
@@ -332,7 +331,7 @@ public class Client {
 
     public void sendRequestPdu(PduRequest pduRequest, long toMillis, boolean async) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
         //session.get
-        
+
         session.sendRequestPdu(pduRequest, toMillis, async);
 
         this.lastSendMillis = System.currentTimeMillis();
@@ -346,5 +345,9 @@ public class Client {
 
     public void setServerSessionHandler(SmppServerSessionHandler handler) {
         this.serverSessionHandler = handler;
+    }
+
+    public String getName() {
+        return name;
     }
 }

@@ -124,7 +124,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 for (Client client : clients) {
                     binded |= client.isBound();
                 }
-            } while ((!binded) && (System.currentTimeMillis() - start) < 30000);
+
+            } while ((!binded) && ((System.currentTimeMillis() - start) < 10000));
 
             if (binded) {
                 cleanUpFuture = this.asyncPool.scheduleAtFixedRate(new CleanupTask(msgMap), 60, 60, TimeUnit.SECONDS);
@@ -212,7 +213,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 pduRequest.getSequenceNumber()
             );
     }
-    
+
     public void processSubmitSm(SubmitSm ssm) {
         SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
 
@@ -244,7 +245,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                         + "_"
                         + parts;
 
-                logger.info("Multipart message key:{}", key);
+                logger
+                    .info(
+                        "sess.name:{} got ssm.seq_num:{} multipart message key:{}",
+                        serverSession.getConfiguration().getName(),
+                        ssm.getSequenceNumber(),
+                        key
+                    );
 
                 if (msgMap.containsKey(key)) {
                     MsgRoute route = msgMap.get(key);
@@ -288,7 +295,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         submitSmResp.setSequenceNumber((int) ri.getInputSequenceNumber());
 
         SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
-        
+
         logger
             .info(
                 "{} ssmr.seq_num:{} -> {} ssmr.seq_num:{}",
