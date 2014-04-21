@@ -1,12 +1,9 @@
 package com.a1systems.smpp.multiplexer.server;
 
-import com.a1systems.smpp.multiplexer.client.RouteInfo;
-import static com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler.logger;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
-import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +28,9 @@ class InputSender implements Runnable {
                 serverSession.sendRequestPdu((PduRequest) pdu, TimeUnit.SECONDS.toMillis(300), false);
             }
         } catch (Exception ex) {
-            logger.error("{}", ex);
+            logger.error("inputsender.error pdu:{} {}", pdu, ex);
+            
+            logger.error("inputsender.error pdu:{} {}", pdu, ex.getCause());
         }
     }
 

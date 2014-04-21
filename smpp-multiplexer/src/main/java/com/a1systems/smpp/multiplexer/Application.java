@@ -74,14 +74,14 @@ public class Application {
     public void run(CliConfig config) throws SmppChannelException {
         logger.info("Application starting");
 
-        pool = Executors.newFixedThreadPool(10);
+        pool = Executors.newFixedThreadPool(30);
 
         ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(5);
 
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
         serverConfig.setNonBlockingSocketsEnabled(true);
-
+        
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
         String[] configEndPoints = config.getEndPoints().split(",");

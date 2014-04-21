@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +80,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
         session.getConfiguration().setLoggingOptions(lo);
 
+        session.getConfiguration().setWriteTimeout(TimeUnit.MILLISECONDS.toMillis(200));
+        
         try {
             SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, session, pool, this);
 

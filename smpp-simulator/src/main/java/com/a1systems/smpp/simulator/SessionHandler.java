@@ -34,7 +34,7 @@ public class SessionHandler extends DefaultSmppSessionHandler {
 
             resp.setMessageId(String.valueOf(id));
 
-            pool.schedule(new DeliveryTask(session, (SubmitSm)pduRequest, id), 10, TimeUnit.SECONDS);
+            pool.schedule(new DeliveryTask(session, (SubmitSm)pduRequest, id), 1, TimeUnit.SECONDS);
 
             return resp;
         } else {

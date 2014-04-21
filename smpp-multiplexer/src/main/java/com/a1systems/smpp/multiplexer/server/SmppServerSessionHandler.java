@@ -39,7 +39,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     public static final Logger logger = LoggerFactory.getLogger(SmppServerSessionHandler.class);
 
-    protected final WeakReference<SmppSession> sessionRef;
+    protected final SmppSession session;
 
     protected ThreadPoolExecutor pool;
 
@@ -67,7 +67,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     public SmppServerSessionHandler(String systemId, String password, SmppSession session, ExecutorService pool, SmppServerHandlerImpl handler) throws Exception {
-        this.sessionRef = new WeakReference<SmppSession>(session);
+        this.session = session;
 
         this.handler = handler;
 
@@ -87,6 +87,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setSystemId(systemId);
             cfg.setPassword(password);
 
+            cfg.setType(session.getConfiguration().getType());
+            
             LoggingOptions lo = new LoggingOptions();
             lo.setLogBytes(false);
             lo.setLogPdu(false);
@@ -156,7 +158,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         }
 
         if (pduRequest instanceof SubmitSm) {
-            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_ssm").mark();
+            handler.getMetricsRegistry().meter(session.getConfiguration().getName() + "_ssm").mark();
 
             processSubmitSm((SubmitSm) pduRequest);
         }
@@ -169,7 +171,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         PduResponse pduResponse = pdu.getResponse();
 
         if (pduResponse instanceof DeliverSmResp) {
-            handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_dsm").mark();
+            handler.getMetricsRegistry().meter(session.getConfiguration().getName() + "_dsm").mark();
 
             RouteInfo ri = (RouteInfo) pdu.getRequest().getReferenceObject();
 
@@ -181,7 +183,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     @Override
     public void fireChannelUnexpectedlyClosed() {
-        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+        SmppServerSession serverSession = (SmppServerSession) session;
 
         logger.info("Server session sess.name:{} destroyed", serverSession.getConfiguration().getName());
 
@@ -189,10 +191,10 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             client.stop();
         }
 
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_ssm");
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_dsm");
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_ssmr");
-        handler.getMetricsRegistry().remove(sessionRef.get().getConfiguration().getName() + "_dsmr");
+        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssm");
+        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsm");
+        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssmr");
+        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsmr");
 
         msgMap = null;
 
@@ -209,13 +211,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         logger
             .error(
                 "{} expired pdu.seq_num:{}",
-                ((SmppSession)sessionRef.get()).getConfiguration().getName(),
+                ((SmppSession)session).getConfiguration().getName(),
                 pduRequest.getSequenceNumber()
             );
     }
 
     public void processSubmitSm(SubmitSm ssm) {
-        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+        SmppServerSession serverSession = (SmppServerSession) session;
 
         if (aliveClients.size() > 0) {
             long id = Math.abs(index.incrementAndGet()) % aliveClients.size();
@@ -283,7 +285,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             ssm.removeSequenceNumber();
 
-            pool.submit(new OutputSender(c, (SmppServerSession) sessionRef.get(), ssm));
+            pool.submit(new OutputSender(c, (SmppServerSession) session, ssm));
         }
     }
 
@@ -294,7 +296,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         submitSmResp.setSequenceNumber((int) ri.getInputSequenceNumber());
 
-        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+        SmppServerSession serverSession = (SmppServerSession) session;
 
         logger
             .info(
@@ -305,13 +307,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 submitSmResp.getSequenceNumber()
             );
 
-        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_ssmr").mark();
+        handler.getMetricsRegistry().meter(session.getConfiguration().getName() + "_ssmr").mark();
 
         pool.submit(new InputSender(serverSession, submitSmResp));
     }
 
     public void processDeliverSm(DeliverSm deliverSm) {
-        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+        SmppServerSession serverSession = (SmppServerSession) session;
 
         RouteInfo ri = (RouteInfo) deliverSm.getReferenceObject();
 
@@ -327,11 +329,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         deliverSm.removeSequenceNumber();
 
-        pool.submit(new InputSender((SmppServerSession) sessionRef.get(), deliverSm));
+        pool.submit(new InputSender((SmppServerSession) session, deliverSm));
     }
 
     public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
-        handler.getMetricsRegistry().meter(sessionRef.get().getConfiguration().getName() + "_dsmr").mark();
+        handler.getMetricsRegistry().meter(session.getConfiguration().getName() + "_dsmr").mark();
 
         RouteInfo ri = (RouteInfo) deliverSmResp.getReferenceObject();
 
@@ -341,7 +343,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         deliverSmResp.setSequenceNumber((int) ri.getOutputSequenceNumber());
 
-        SmppServerSession serverSession = (SmppServerSession) sessionRef.get();
+        SmppServerSession serverSession = (SmppServerSession) session;
 
         logger
                 .info(
