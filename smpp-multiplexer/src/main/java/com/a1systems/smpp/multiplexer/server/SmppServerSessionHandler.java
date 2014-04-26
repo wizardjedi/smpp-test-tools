@@ -132,9 +132,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             if (binded) {
                 cleanUpFuture = this.asyncPool.scheduleAtFixedRate(new CleanupTask(msgMap), 60, 60, TimeUnit.SECONDS);
 
-                logger.info("Create server session");
+                logger.info("{} Create server session",session.getConfiguration().getName());
             } else {
-                logger.error("Timeout", session.getConfiguration().getName());
+                logger.error("{} Timeout", session.getConfiguration().getName());
 
                 for (Client client : clients) {
                     client.stop();
@@ -300,9 +300,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         logger
             .info(
-                "{} ssmr.seq_num:{} -> {} ssmr.seq_num:{}",
+                "{} ssmr.seq_num:{} status:{} msg_id:{} -> {} ssmr.seq_num:{}",
                 ri.getClient().toStringConnectionParams(),
                 sequenceNumber,
+                submitSmResp.getCommandStatus(),
+                submitSmResp.getMessageId(),
                 serverSession.getConfiguration().getName(),
                 submitSmResp.getSequenceNumber()
             );
@@ -347,9 +349,10 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         logger
                 .info(
-                        "sess:{} dsmr.seq_num:{} -> {} dsm.seq_num:{}",
+                        "sess:{} dsmr.seq_num:{} status:{} -> {} dsm.seq_num:{}",
                         serverSession.getConfiguration().getName(),
                         oldSequenceNumber,
+                        deliverSmResp.getCommandStatus(),
                         c.toStringConnectionParams(),
                         deliverSmResp.getSequenceNumber()
                 );
