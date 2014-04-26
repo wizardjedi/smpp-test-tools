@@ -88,7 +88,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setPassword(password);
 
             cfg.setType(session.getConfiguration().getType());
-            
+
             LoggingOptions lo = new LoggingOptions();
             lo.setLogBytes(false);
             lo.setLogPdu(false);
@@ -366,6 +366,22 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     public void clientBound(Client client) {
         if (!client.isHidden()) {
             aliveClients.add(client);
+        }
+    }
+
+    void processQueuedRequests() {
+        for (Client c:clients) {
+            c.setActive(true);
+        }
+
+        for (Client c:clients) {
+            PduRequest r = c.getFromQueue();
+
+            while (r != null) {
+                processDeliverSm((DeliverSm)r);
+
+                r = c.getFromQueue();
+            }
         }
     }
 

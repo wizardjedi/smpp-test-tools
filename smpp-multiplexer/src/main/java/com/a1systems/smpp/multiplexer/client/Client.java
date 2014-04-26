@@ -14,6 +14,7 @@ import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import com.google.common.util.concurrent.RateLimiter;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +40,10 @@ public class Client {
     protected ClientState state;
 
     protected volatile SmppSession session;
+
+    protected volatile boolean active = false;
+
+    protected ArrayBlockingQueue<PduRequest> requests = new ArrayBlockingQueue<PduRequest>(1000);
 
     protected volatile long lastSendMillis;
 
@@ -144,6 +149,13 @@ public class Client {
 
             this.state = ClientState.BOUND;
 
+            SmppSessionConfiguration cfg2 = session.getConfiguration();
+
+            if (!cfg2.getHost().equals(this.cfg.getHost()) || !cfg2.getPassword().equals(this.cfg.getPassword())) {
+                System.exit(12);
+                throw new RuntimeException("Ahtung!!!");
+            }
+
             this.session = session;
 
             if (rebindTask != null) {
@@ -174,6 +186,14 @@ public class Client {
             session.unbind(TimeUnit.SECONDS.toMillis(30));
             session.close();
         }
+    }
+
+    public void addToQueue(PduRequest pdu) {
+        this.requests.add(pdu);
+    }
+
+    public PduRequest getFromQueue() {
+        return this.requests.poll();
     }
 
     public ClientState getState() {
@@ -263,6 +283,14 @@ public class Client {
 
     public void setSmppClient(SmppClient smppClient) {
         this.smppClient = smppClient;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public int getSpeed() {

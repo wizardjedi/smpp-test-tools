@@ -81,7 +81,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         session.getConfiguration().setLoggingOptions(lo);
 
         session.getConfiguration().setWriteTimeout(TimeUnit.MILLISECONDS.toMillis(200));
-        
+
         try {
             SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, session, pool, this);
 
@@ -94,6 +94,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             session.getConfiguration().setName(sessionName);
 
             session.serverReady(smppServerSessionHandler);
+
+            smppServerSessionHandler.processQueuedRequests();
         } catch (Exception ex) {
             logger.error("{}", ex);
 

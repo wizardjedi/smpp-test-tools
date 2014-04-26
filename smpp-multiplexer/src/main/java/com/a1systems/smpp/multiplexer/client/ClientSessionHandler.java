@@ -55,7 +55,11 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
 
             pduRequest.setReferenceObject(ri);
 
-            serverHandler.processDeliverSm((DeliverSm)pduRequest);
+            if (client.isActive()) {
+                serverHandler.processDeliverSm((DeliverSm)pduRequest);
+            } else {
+                client.addToQueue(pduRequest);
+            }
 
             return null;
         }
