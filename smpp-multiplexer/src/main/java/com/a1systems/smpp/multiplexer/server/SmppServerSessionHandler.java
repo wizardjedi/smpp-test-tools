@@ -86,6 +86,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setPort(c.getPort());
             cfg.setSystemId(systemId);
             cfg.setPassword(password);
+            cfg.setRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
+            cfg.setWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
 
             cfg.setType(session.getConfiguration().getType());
 
@@ -103,6 +105,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             client.setServerSessionHandler(this);
             client.setSessionHandler(new ClientSessionHandler(this, client));
+
+            client.setElinkPeriod(30);
 
             client.setTimer(asyncPool);
             client.setPool(pool);

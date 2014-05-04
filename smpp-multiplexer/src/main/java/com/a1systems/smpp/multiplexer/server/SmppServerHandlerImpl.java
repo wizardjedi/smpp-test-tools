@@ -40,7 +40,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
     protected ConcurrentHashMap<Long, SmppServerSessionHandler> handlers = new ConcurrentHashMap<Long, SmppServerSessionHandler>();
     protected MetricRegistry metricsRegistry;
 
-    public SmppServerHandlerImpl(ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
+    public SmppServerHandlerImpl(NioEventLoopGroup group, ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
         this.pool = pool;
 
         asyncPool = Executors.newScheduledThreadPool(5);
@@ -50,9 +50,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         final JmxReporter reporter = JmxReporter.forRegistry(metricsRegistry).build();
         reporter.start();
 
-        NioEventLoopGroup nelg = new NioEventLoopGroup();
-
-        this.smppClient = new DefaultSmppClient(nelg, asyncPool);
+        this.smppClient = new DefaultSmppClient(group, asyncPool);
 
         this.endPoints = endPoints;
     }

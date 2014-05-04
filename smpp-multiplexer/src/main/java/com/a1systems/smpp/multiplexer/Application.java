@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +82,7 @@ public class Application {
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
         serverConfig.setNonBlockingSocketsEnabled(true);
-        
+
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
         String[] configEndPoints = config.getEndPoints().split(",");
@@ -109,11 +110,13 @@ public class Application {
 
         serverConfig.setMaxConnectionSize(300);
         serverConfig.setDefaultWindowSize(10000);
+        serverConfig.setDefaultRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
+        serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
 
         NioEventLoopGroup group = new NioEventLoopGroup();
 
         DefaultSmppServer server;
-        server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(pool, endPoints), asyncPool, group, group);
+        server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(group, pool, endPoints), asyncPool, group, group);
 
         logger.info("Smpp server starting");
 
