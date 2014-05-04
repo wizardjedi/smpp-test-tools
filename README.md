@@ -8,4 +8,5 @@ Testing tools for smpp
  * ```range_slicer``` - cli tool to slice, merge and optimize ranges of mobile numbers
  * ```http-adapter``` - HTTP-to-SMPP adapter
  * ```smpp-simulator``` - simple SMPP simulator. Will only get messages without validation. And create fake delivery receipts in 10 seconds.
- * ```smpp-zabbix-checker``` - simple cli-tool to check sending SMS for monitoring purposes with Zabbix (or Nagios etc). 
+ * ```smpp-zabbix-checker``` - simple cli-tool to check sending SMS for monitoring purposes with Zabbix (or Nagios etc).
+ * ```smpp-multiplexer``` - simple tool for multiplexing and load balance smpp-connections. 
