@@ -2,6 +2,7 @@ package com.a1systems.smpp.multiplexer.client;
 
 import com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler;
 import com.cloudhopper.smpp.PduAsyncResponse;
+import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.DeliverSm;
 import com.cloudhopper.smpp.pdu.EnquireLink;
@@ -89,6 +90,12 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
     public void fireChannelUnexpectedlyClosed() {
         logger.error("{} Session unexpectedly closed.", client.toStringConnectionParams());
 
+        SmppSession session = client.getSession();
+        
+        if (session != null) {
+            session.destroy();
+        }
+        
         client.bind();
     }
 }

@@ -24,12 +24,15 @@ public class RebindTask implements Runnable {
     public void run() {
         if (client.isBinding()) {
             SmppClient smppClient = client.getSmppClient();
+            
+            SmppSession session = null;
+            
             try {
                 SmppSessionConfiguration cfg = client.getCfg();
 
                 log.debug("Try to bind host:[{}:{}] Credentials:[{}]:[{}]", cfg.getHost(), cfg.getPort(), cfg.getSystemId(), cfg.getPassword());
 
-                SmppSession session = smppClient.bind(client.getCfg(), client.getSessionHandler());
+                session = smppClient.bind(client.getCfg(), client.getSessionHandler());
 
                 client.bound(session);
             } catch (SmppTimeoutException ex) {
@@ -42,6 +45,10 @@ public class RebindTask implements Runnable {
                 log.error("{}", ex.getMessage());
             } catch (InterruptedException ex) {
                 log.error("{}", ex.getMessage());
+            } finally {
+                if (session != null) {
+                    session.destroy();
+                }
             }
         }
     }
