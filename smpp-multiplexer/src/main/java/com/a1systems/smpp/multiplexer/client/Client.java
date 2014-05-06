@@ -184,6 +184,7 @@ public class Client {
 
         if (session != null) {
             session.unbind(TimeUnit.SECONDS.toMillis(30));
+            session.destroy();
             session.close();
         }
     }

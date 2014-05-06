@@ -205,9 +205,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         if (cleanUpFuture != null) {
             cleanUpFuture.cancel(true);
         }
-
-        serverSession.close();
+   
         serverSession.destroy();
+        serverSession.close();
     }
 
     @Override
