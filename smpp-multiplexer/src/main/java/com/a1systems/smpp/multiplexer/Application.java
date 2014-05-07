@@ -5,21 +5,29 @@ import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import io.netty.channel.nio.NioEventLoopGroup;
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Application {
+
     public static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     protected ExecutorService pool;
 
     public static class ConnectionEndpoint {
+
         protected String host;
         protected int port;
         protected boolean hidden = false;
@@ -73,7 +81,30 @@ public class Application {
     }
 
     public void run(CliConfig config) throws SmppChannelException {
-        logger.info("Application starting");
+        String applicationVersion = "undefined";
+               
+        try {
+            Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
+            while (resources.hasMoreElements()) {
+                URL elem = resources.nextElement();
+
+                Manifest manifest = new Manifest(elem.openStream());
+
+                Attributes attrs = manifest.getMainAttributes();
+
+                if (
+                    attrs.getValue("Implementation-Build") != null
+                    && attrs.getValue("Main-Class").equals("com.a1systems.smpp.multiplexer.App")
+                ) {
+                    applicationVersion = attrs.getValue("Implementation-Build");
+                    break;
+                };
+            }
+        } catch (IOException e) {
+            logger.error("Couldnot open manifest");
+        }
+
+        logger.info("Application version:{} starting", applicationVersion);
 
         pool = Executors.newFixedThreadPool(30);
 
@@ -92,10 +123,8 @@ public class Application {
 
             ConnectionEndpoint c;
 
-            if (
-                parts.length == 3
-                && parts[0].toLowerCase().equals("h")
-                ) {
+            if (parts.length == 3
+                    && parts[0].toLowerCase().equals("h")) {
                 c = ConnectionEndpoint.create(parts[1], Integer.parseInt(parts[2]), true);
             } else {
                 c = ConnectionEndpoint.create(parts[0], Integer.parseInt(parts[1]), false);
