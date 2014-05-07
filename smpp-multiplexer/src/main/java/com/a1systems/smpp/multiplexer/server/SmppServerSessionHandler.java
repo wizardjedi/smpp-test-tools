@@ -194,12 +194,18 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         for (Client client : clients) {
             client.stop();
         }
-
+        
+        clients.clear();
+        clients = null;
+        aliveClients.clear();
+        aliveClients = null;
+        
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssm");
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsm");
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssmr");
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsmr");
 
+        msgMap.clear();
         msgMap = null;
 
         if (cleanUpFuture != null) {
