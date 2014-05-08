@@ -30,29 +30,29 @@ public class RebindTask implements Runnable {
             try {
                 SmppSessionConfiguration cfg = client.getCfg();
 
-                log.debug("Try to bind host:[{}:{}] Credentials:[{}]:[{}]", cfg.getHost(), cfg.getPort(), cfg.getSystemId(), cfg.getPassword());
+                log.debug("{} Try to bind host:[{}:{}] Credentials:[{}]:[{}]", client.getName(), cfg.getHost(), cfg.getPort(), cfg.getSystemId(), cfg.getPassword());
 
                 session = smppClient.bind(client.getCfg(), client.getSessionHandler());
 
                 client.bound(session);
             } catch (SmppTimeoutException ex) {
-                log.error("{}", ex.getMessage());
+                log.error("{} {}", client.getName(), ex.getMessage());
                 
                 closeSession(session);
             } catch (SmppChannelException ex) {
-                log.error("{}", ex.getMessage());
+                log.error("{} {}", client.getName(), ex.getMessage());
                 
                 closeSession(session);
             } catch (SmppBindException ex) {
-                log.error("{}", ex.getMessage());
+                log.error("{} {}", client.getName(), ex.getMessage());
                 
                 closeSession(session);
             } catch (UnrecoverablePduException ex) {
-                log.error("{}", ex.getMessage());
+                log.error("{} {}", client.getName(), ex.getMessage());
                 
                 closeSession(session);
             } catch (InterruptedException ex) {
-                log.error("{}", ex.getMessage());
+                log.error("{} {}", client.getName(), ex.getMessage());
                 
                 closeSession(session);
             }
@@ -61,6 +61,8 @@ public class RebindTask implements Runnable {
 
     protected void closeSession(SmppSession session) {
         if (session != null) {
+            log.info("Destroy session after unseccessfull bind for {}", client.getName());
+            
             session.destroy();
         }
     }

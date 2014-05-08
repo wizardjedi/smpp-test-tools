@@ -83,7 +83,7 @@ public class Client {
         this.cfg = cfg;
 
         this.smppClient = smppClient;
-
+     
         this.state = ClientState.IDLE;
 
         connectionString = cfg.getHost()+":"+cfg.getPort()+":["+cfg.getSystemId()+":"+cfg.getPassword()+"]";
@@ -176,16 +176,29 @@ public class Client {
 
         if (this.elinkTask != null) {
             this.elinkTask.cancel(true);
+            
+            elinkTask = null;
         }
 
         if (this.rebindTask != null) {
             this.rebindTask.cancel(true);
+            rebindTask = null;
         }
 
         if (session != null) {
             session.unbind(TimeUnit.SECONDS.toMillis(30));
             session.destroy();
             session.close();
+            session = null;
+        }
+        
+        if (requests != null) {
+            requests.clear();
+            requests = null;
+        }
+        
+        if (serverSessionHandler != null) {
+            serverSessionHandler = null;
         }
     }
 

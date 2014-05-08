@@ -2,4 +2,4 @@
 
 cd /usr/share/smpp-multiplexer/
 
-java -jar ${project.build.finalName} "$@"
+java -Xms2048m -Xmx2048m -jar -Dlogback.configurationFile=etc/logback.xml ${project.build.finalName}.jar "$@"

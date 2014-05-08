@@ -27,7 +27,7 @@
 
         <junit.version>4.11</junit.version>
 
-        <ch.smpp.version>5.0.6</ch.smpp.version>
+        <ch.smpp.version>6.0.0-20140508.055442-5</ch.smpp.version>
         <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
         <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
 
@@ -91,7 +91,7 @@
         <dependency>
             <groupId>com.cloudhopper</groupId>
             <artifactId>a1s-ch-smpp</artifactId>
-            <version>6.0.0-20140409.105831-1</version>
+            <version>${ch.smpp.version}</version>
         </dependency>
 
         <dependency>
