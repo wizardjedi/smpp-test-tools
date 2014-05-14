@@ -1,4 +1,4 @@
-package com.a1systems.http.adapter;
+package com.a1systems.smpp.simulator;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
