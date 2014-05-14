@@ -150,6 +150,30 @@ function onChannelClosed(simulatorSession) {
 * setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, DateTime sendDate, DateTime deliveryDate, int errorCode)
 * scheduleDeliverySm(DeliverySm, Session, delayMillis) - helper method for schedule sending of DELIVERY_SM to session with specified delay in milliseconds
 
+# Performance
+
+Performance test was executed with smpp-load (https://github.com/PowerMeMobile/smppload)
+
+Laptop hardware and versions
+
+```
+$ free -m
+             total
+mem:       7802
+
+$ ./smppload -H 127.0.0.1 -P 2775 -u test1 -p test -d 79111234567 -s 79121234567 -c 50000 -r 2000 -v 1
+INFO:  Connected to 127.0.0.1:2775
+INFO:  Bound to cloudhopper
+INFO:  Stats:
+INFO:     Send success:     50000
+INFO:     Delivery success: 0
+INFO:     Send fail:        0
+INFO:     Delivery fail:    0
+INFO:     Errors:           0
+INFO:     Avg Rps:          1847 mps
+INFO:  Unbound
+```
+
 
 # TODO
 * add more handlers
