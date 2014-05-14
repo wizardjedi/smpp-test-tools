@@ -106,11 +106,11 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         logger.debug("Session sess.id:{} sess.name:{} destroy", sessionId, session.getConfiguration().getName());
 
         SmppServerSessionHandler handler = handlers.get(sessionId);
-        
+
         handler.fireChannelUnexpectedlyClosed();
 
         handlers.remove(sessionId);
-        
+
         session.close();
         session.destroy();
     }

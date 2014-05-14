@@ -12,14 +12,14 @@
     <version>1.0</version>
     <name>smpp-multiplexer</name>
     <url>http://maven.apache.org</url>
-    
+
     <scm>
         <connection>scm:svn:http://127.0.0.1/svn/my-project</connection>
         <developerConnection>scm:svn:https://127.0.0.1/svn/my-project</developerConnection>
         <tag>HEAD</tag>
         <url>http://127.0.0.1/websvn/my-project</url>
     </scm>
-    
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>1.7.7</slf4j.version>
@@ -87,7 +87,7 @@
             <artifactId>ch-smpp</artifactId>
             <version>${ch.smpp.version}</version>
         </dependency-->
-        
+
         <dependency>
             <groupId>com.cloudhopper</groupId>
             <artifactId>a1s-ch-smpp</artifactId>
