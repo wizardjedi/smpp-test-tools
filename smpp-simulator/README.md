@@ -84,7 +84,8 @@ onSubmitSm=function(submitSm, session){
 
 ### Simulator methods
 
-* createDeliveryReceipt(SubmitSm) - helper method for creating delivery receipt object from SubmitSm
+* createDeliveryReceipt(SubmitSm) - helper method for creating delivery receipt object (DELIVER_SM) from SubmitSm
+* setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, DateTime sendDate, DateTime deliveryDate, int errorCode)
 * scheduleDeliverySm(DeliverySm, Session, delayMillis) - helper method for schedule sending of DELIVERY_SM to session with specified delay in milliseconds
 
 
