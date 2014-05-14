@@ -31,7 +31,7 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
         if (app.getInvocableEngine() != null) {
             try {
                 Object result = app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_BIND_REQUEST, sessionConfiguration, bindRequest);
-                
+
                 if (result != null) {
                     Integer intResult = (Integer)result;
 
@@ -51,23 +51,29 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
     public void sessionCreated(Long sessionId, SmppServerSession session, BaseBindResp preparedBindResponse) throws SmppProcessingException {
         logger.info("Session created: {}", session);
 
+        SimulatorSession simSession = new SimulatorSession();
+
+        simSession.setSession(session);
+
+        simSession.setSimulator(app.getSimulator());
+
         if (app.getInvocableEngine() != null) {
             try {
-                Object result = app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_SESSION_CREATED, session, preparedBindResponse);
+                app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_SESSION_CREATED, simSession, preparedBindResponse);
             } catch (ScriptException ex) {
                 logger.error("sessionCreated() error:{}", ex.getMessage());
             } catch (NoSuchMethodException ex) {
                 /* */
             }
         }
-        
-        session.serverReady(new SessionHandler(app, session, pool));
+
+        session.serverReady(new SessionHandler(app, session, simSession, pool));
     }
 
     @Override
     public void sessionDestroyed(Long sessionId, SmppServerSession session) {
         logger.info("Session destroyed: {}", session);
-        
+
         if (app.getInvocableEngine() != null) {
             try {
                 app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_SESSION_DESTROYED, session);

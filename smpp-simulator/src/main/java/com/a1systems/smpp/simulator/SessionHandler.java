@@ -18,26 +18,23 @@ import org.slf4j.LoggerFactory;
 public class SessionHandler extends DefaultSmppSessionHandler {
 
     public static final Logger logger = LoggerFactory.getLogger(SessionHandler.class);
-    
+
     protected ScheduledExecutorService pool;
 
     protected Application app;
-    
+
     protected WeakReference<SmppSession> sessionRef;
 
     protected AtomicLong counter = new AtomicLong(1);
 
     protected SimulatorSession simulatorSession;
-    
-    public SessionHandler(Application app,SmppSession session, ScheduledExecutorService pool) {
+
+    public SessionHandler(Application app,SmppSession session, SimulatorSession simSession, ScheduledExecutorService pool) {
         this.sessionRef = new WeakReference<SmppSession>(session);
         this.app = app;
         this.pool = pool;
-        
-        simulatorSession = new SimulatorSession();
-        
-        simulatorSession.setSession(session);
-        simulatorSession.setSimulator(app.getSimulator());
+
+        this.simulatorSession = simSession;
     }
 
     @Override
@@ -46,13 +43,15 @@ public class SessionHandler extends DefaultSmppSessionHandler {
 
         if (app.getInvocableEngine() != null) {
             try {
-                app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_PDU_REQUEST, simulatorSession, pduRequest);
+                Object result = app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_PDU_REQUEST, simulatorSession, pduRequest);
+
+                return (PduResponse) result;
             } catch (ScriptException ex) {
                 logger.error("firePduRequestReceived {}", ex.getMessage());
             } catch (NoSuchMethodException ex) {
                 /* */
             }
-            
+
             return pduRequest.createResponse();
         } else {
             if (pduRequest instanceof SubmitSm) {
@@ -73,7 +72,7 @@ public class SessionHandler extends DefaultSmppSessionHandler {
     @Override
     public void fireChannelUnexpectedlyClosed() {
         logger.error("Channel unexpectedly closed");
-        
+
         if (app.getInvocableEngine() != null) {
             try {
                 app.getInvocableEngine().invokeFunction(ScriptConstants.HANDLER_ON_CHANNEL_CLOSED, simulatorSession);
@@ -83,7 +82,7 @@ public class SessionHandler extends DefaultSmppSessionHandler {
                 /* */
             }
         }
-        
+
         super.fireChannelUnexpectedlyClosed();
     }
 
@@ -101,8 +100,8 @@ public class SessionHandler extends DefaultSmppSessionHandler {
     public void fireExpectedPduResponseReceived(PduAsyncResponse pduAsyncResponse) {
         super.fireExpectedPduResponseReceived(pduAsyncResponse);
     }
-    
-    
-    
-    
+
+
+
+
 }
