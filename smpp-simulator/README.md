@@ -2,9 +2,7 @@
 
 smpp-simulator - simple tool for testing purposes. SMPP-simulator listen for incoming smpp connections and respond with success resps and also generates DELIVERY RECEIPTS. 
 
-# TODO
-
-## JavaScript handlers
+# JavaScript handlers
 
 smpp-simulator uses JDK's `ScriptEngine` to provide ability to create handlers with JS.
 
@@ -19,7 +17,7 @@ This command will start smpp-simulator on port 5000 with JS-handlers placed in `
 
 handlers.js contains handlers written with JavaScript
 
-## Examples
+# Examples
 
 Create SMPP-simulator with logging and writing PDU's to file. Reply submitsmresp with increased int numbers.
 
@@ -113,7 +111,7 @@ function onChannelClosed(simulatorSession) {
 }
 ```
 
-## Event handlers
+# Event handlers
 
 * onBindRequest
 * onSessionCreated
@@ -121,17 +119,17 @@ function onChannelClosed(simulatorSession) {
 * onPduRequest
 * onChannelClosed
 
-## Global objects
+# Global objects
 
 * ScriptLogger - script logger (instance of slf4j Logger)
 
-## Classes
+# Classes
 
-* Session - reperesents current session (session wrapper)
-* SubmitSm - represents received SUBMIT_SM
-* DeliverSm - represents DELIVER_SM
+* SimulatorSession - reperesents current session (session wrapper)
+* SubmitSm - represents received SUBMIT_SM (from com.cloudhopper.smpp.pdu)
+* DeliverSm - represents DELIVER_SM (from com.cloudhopper.smpp.pdu)
 
-### Session methods
+## SimulatorSession methods
 
 * getSimulator() - get simulator object
 * getMap() - get map to store objects
@@ -145,7 +143,7 @@ function onChannelClosed(simulatorSession) {
 * clear() - clear map
 * contains(value) - is object contains in map
 
-### Simulator methods
+## Simulator methods
 
 * createDeliveryReceipt(SubmitSm) - helper method for creating delivery receipt object (DELIVER_SM) from SubmitSm
 * setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, String sendDate, String deliveryDate, int errorCode)
@@ -153,7 +151,11 @@ function onChannelClosed(simulatorSession) {
 * scheduleDeliverySm(DeliverySm, Session, delayMillis) - helper method for schedule sending of DELIVERY_SM to session with specified delay in milliseconds
 
 
-
+# TODO
+* add more handlers
+* add ticks
+* add tests
+* test with JDK 7, JDK 6, OpenJDK 6, OpenJDK 7
 
 
 
