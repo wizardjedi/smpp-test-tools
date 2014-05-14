@@ -14,5 +14,6 @@
     <module>smpp-simulator</module>
     <module>smpp-zabbix-checker</module>
     <module>smpp-multiplexer</module>
-  </modules>
+        <module>log-watcher</module>
+    </modules>
 </project>
