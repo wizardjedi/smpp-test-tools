@@ -27,6 +27,8 @@ Create SMPP-simulator with logging and writing PDU's to file. Reply submitsmresp
 $ java -jar target/smpp-simulator-1.0-SNAPSHOT.jar -p 2775 -f 3.js -D messageStep=10
 ```
 
+3.js
+
 ```JS
 // Print banner on file loaded
 print("file loaded");
@@ -113,35 +115,40 @@ function onChannelClosed(simulatorSession) {
 
 ## Event handlers
 
-* function onStart() - start handler for simulator
-* function onBindRequest() - handler for bind request received
-* function onSessionCreated() - handler for session have been created
-* function onSubmitSm() - handler fired when SUBMIT_SM was received
-* function onTick() - tick handler
-
-### onStart()
-### onBindRequest()
-### onSessionCreated()
-### onSubmitSm()
-### onTick()
+* onBindRequest
+* onSessionCreated
+* onSessionDestroyed
+* onPduRequest
+* onChannelClosed
 
 ## Global objects
 
-* Simulator - global object for simulator
+* ScriptLogger - script logger (instance of slf4j Logger)
 
 ## Classes
 
-* Session - reperesents current session
+* Session - reperesents current session (session wrapper)
 * SubmitSm - represents received SUBMIT_SM
 * DeliverSm - represents DELIVER_SM
 
 ### Session methods
 
 * getSimulator() - get simulator object
+* getMap() - get map to store objects
+* put(key, val) - store object to map
+* get(key) - get object from map
+* incrementCounterAndGet() - increment and get value from counter
+* decrementCounterAndGet() - decrement and get counter
+* addCounterAndGet(delta) - add and get counter
+* containsKey(key) - is object contains in map
+* remove(key) - remove object by key from map
+* clear() - clear map
+* contains(value) - is object contains in map
 
 ### Simulator methods
 
 * createDeliveryReceipt(SubmitSm) - helper method for creating delivery receipt object (DELIVER_SM) from SubmitSm
+* setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, String sendDate, String deliveryDate, int errorCode)
 * setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, DateTime sendDate, DateTime deliveryDate, int errorCode)
 * scheduleDeliverySm(DeliverySm, Session, delayMillis) - helper method for schedule sending of DELIVERY_SM to session with specified delay in milliseconds
 
