@@ -1,0 +1,11 @@
+2014-05-04 00:22:35 Loading XML bean definitions from class path resource [spring-context.xml]
+2014-05-04 00:22:35 Refreshing org.springframework.context.support.GenericXmlApplicationContext@7c16905e: startup date [Sun May 04 00:22:35 MSK 2014]; root of context hierarchy
+2014-05-04 00:22:35 Logging initialized @898ms
+2014-05-04 00:22:35 jetty-9.1.4.v20140401
+2014-05-04 00:22:35 Started o.e.j.s.ServletContextHandler@c86b9e3{/,null,AVAILABLE}
+2014-05-04 00:22:35 Started ServerConnector@d21a74c{HTTP/1.1}{0.0.0.0:8182}
+2014-05-04 00:22:35 Started @1127ms
+2014-05-04 00:23:35 Clear task
+2014-05-04 00:24:35 Clear task
+2014-05-04 00:25:35 Clear task
+2014-05-04 00:26:35 Clear task

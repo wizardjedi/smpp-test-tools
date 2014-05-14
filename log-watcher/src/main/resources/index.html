@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Remore log watcher</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <script type="text/javascript">
+            var lastInterval;
+            var clearingInterval;
+
+            function getRequest() {
+                stop();
+
+                $('#container').html('');
+
+                lastInterval = setInterval(function(){getContent($('#cmd').val());}, 1000);
+
+                clearingInterval = setInterval(function(){$('#container').html('');}, 30*1000);
+            }
+
+            function stop() {
+                clearInterval(lastInterval);
+                clearInterval(clearingInterval);
+            }
+
+            function getContent(query) {
+                $.get("/watcher?cmd="+query,function(data) {
+
+                    if ($('#color').val()!="") {
+                        re = new RegExp("("+$('#color').val()+")", "gi");
+
+                        data = data.replace(re, "<span style='color:red;font-weight:bold;'>$1</span>");
+                    }
+
+                    if (data != "") {
+                        $('#container').append("<pre><code>"+data+"</code></pre>");
+                    }
+                    $('#container').scrollTop(999999999);
+                });
+            }
+
+            $(function() {
+                $('#container').height(($(window).innerHeight()-30)+"px");
+            });
+        </script>
+    </head>
+    <body>
+        <div>
+            Cmd:<input type="text" id="cmd" /><input type="button" value="get" onclick="getRequest()" /><input type="button" value="stop" onclick="stop()" />
+            Color:<input type="text" id="color" />Filter:<input type="text" id="filter" />
+        </div>
+        <div id="container" style="width: 95%; height: 95%;overflow-y: scroll;">
+        </div>
+    </body>
+</html>

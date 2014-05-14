@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/task
+			http://www.springframework.org/schema/task/spring-task.xsd
+			http://www.springframework.org/schema/tx
+			http://www.springframework.org/schema/tx/spring-tx.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/util
+			http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc
+			http://www.springframework.org/schema/mvc/spring-mvc.xsd
+			http://www.springframework.org/schema/security
+			http://www.springframework.org/schema/security/spring-security.xsd
+">
+    <bean id="asyncTaskPool" class="java.util.concurrent.Executors" factory-method="newScheduledThreadPool" destroy-method="shutdown">
+        <constructor-arg value="15" />
+    </bean>
+
+    <bean id="application" class="com.a1systems.logwatcher.Application" init-method="start">
+    </bean>
+
+    <context:component-scan base-package="com.a1systems.logwatcher" />
+
+    <bean id="jettyThreadPool" class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+        <property name="minThreads" value="10" />
+        <property name="maxThreads" value="100" />
+        <property name="idleTimeout" value="10000" />
+    </bean>
+
+    <bean id="server" depends-on="application" class="org.eclipse.jetty.server.Server" init-method="start" destroy-method="stop">
+        <constructor-arg ref="jettyThreadPool"  />
+        <property name="connectors">
+            <list>
+                <bean class="org.eclipse.jetty.server.ServerConnector" >
+                    <constructor-arg ref="server" />
+                    <property name="port" value="8182" />
+                    <property name="acceptQueueSize" value="10" />
+                </bean>
+            </list>
+        </property>
+        <property name="handler">
+            <bean class="org.eclipse.jetty.servlet.ServletContextHandler">
+                <property name="contextPath" value="/" />
+                <property name="servletHandler">
+                    <bean class="org.eclipse.jetty.servlet.ServletHandler">
+                        <property name="servlets">
+                            <list>
+                                <bean class="org.eclipse.jetty.servlet.ServletHolder" p:name="watcher">
+                                    <constructor-arg index="0">
+                                        <bean class="com.a1systems.logwatcher.WatcherServlet" />
+                                    </constructor-arg>
+                                </bean>
+
+                            </list>
+                        </property>
+                        <property name="servletMappings">
+                            <list>
+                                <bean class="org.eclipse.jetty.servlet.ServletMapping" p:default="true" p:pathSpec="/" p:servletName="watcher"  />
+                            </list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!--context:property-placeholder location="classpath:config.properties" /-->
+</beans>
