@@ -25,13 +25,15 @@
 
         <joda.time.version>2.3</joda.time.version>
 
-        <mcp.source.version>1.7</mcp.source.version>
-        <mcp.target.version>1.7</mcp.target.version>
+        <mcp.source.version>1.6</mcp.source.version>
+        <mcp.target.version>1.6</mcp.target.version>
         <mcp.version>3.1</mcp.version>
 
         <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
         <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
         <jdeb.plugin.version>1.0.1</jdeb.plugin.version>
+        
+        <args4j.version>2.0.26</args4j.version>
     </properties>
 
     <dependencies>
@@ -40,6 +42,14 @@
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- ARGS4J -->
+
+        <dependency>
+            <groupId>args4j</groupId>
+            <artifactId>args4j</artifactId>
+            <version>${args4j.version}</version>
         </dependency>
 
         <!-- Cloudhopper smpp library -->
