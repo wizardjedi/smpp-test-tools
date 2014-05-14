@@ -156,7 +156,11 @@ function onChannelClosed(simulatorSession) {
 * add ticks
 * add tests
 * test with JDK 7, JDK 6, OpenJDK 6, OpenJDK 7
-
+* add setup for logging
+* add deb-package creating
+* add GC-logging
+* add Xmx, Xms
+* add reload file with handlers 
 
 
 
