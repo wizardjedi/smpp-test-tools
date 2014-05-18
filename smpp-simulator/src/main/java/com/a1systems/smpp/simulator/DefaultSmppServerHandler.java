@@ -7,6 +7,7 @@ import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.type.SmppProcessingException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.script.ScriptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,8 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
         }
 
         session.serverReady(new SessionHandler(app, session, simSession, pool));
+
+        pool.scheduleAtFixedRate(new TickTask(app, simSession), 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override

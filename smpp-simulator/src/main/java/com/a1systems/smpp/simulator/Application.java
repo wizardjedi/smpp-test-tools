@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.logging.Level;
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -78,6 +79,12 @@ class Application {
                 scriptEngine.put("Logger", scriptLogger);
 
                 Object eval = scriptEngine.eval(new FileReader(cfg.getFileName()));
+
+                try {
+                    invocableEngine.invokeFunction(ScriptConstants.HANDLER_ON_START, null);
+                } catch (NoSuchMethodException ex) {
+                    logger.info("{}", ex);
+                }
             }
 
             SmppServerConfiguration configuration = new SmppServerConfiguration();
