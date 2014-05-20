@@ -6,6 +6,7 @@ import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.type.SmppProcessingException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.script.ScriptException;
@@ -19,6 +20,8 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
     protected ScheduledExecutorService pool;
 
     protected Application app;
+
+    protected ConcurrentHashMap<Long, SessionHandler> sessionHandlers = new ConcurrentHashMap<Long, SessionHandler>();
 
     public DefaultSmppServerHandler(Application app, ScheduledExecutorService pool) {
         this.pool = pool;
@@ -68,14 +71,18 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
             }
         }
 
-        session.serverReady(new SessionHandler(app, session, simSession, pool));
+        SessionHandler sessionHandler = new SessionHandler(app, session, simSession, pool);
 
-        pool.scheduleAtFixedRate(new TickTask(app, simSession), 1000, 1000, TimeUnit.MILLISECONDS);
+        sessionHandlers.put(sessionId, sessionHandler);
+
+        session.serverReady(sessionHandler);
     }
 
     @Override
     public void sessionDestroyed(Long sessionId, SmppServerSession session) {
         logger.info("Session destroyed: {}", session);
+
+        sessionHandlers.get(sessionId).fireChannelUnexpectedlyClosed();
 
         if (app.getInvocableEngine() != null) {
             try {
@@ -86,6 +93,8 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
                 /* */
             }
         }
+
+        sessionHandlers.remove(sessionId);
 
         session.destroy();
     }

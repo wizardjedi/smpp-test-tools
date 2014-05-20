@@ -31,6 +31,8 @@ class Application {
 
     protected Simulator simulator;
 
+    protected CliConfig cliConfig = null;
+
     public ScriptEngine getScriptEngine() {
         return scriptEngine;
     }
@@ -47,38 +49,44 @@ class Application {
         this.simulator = simulator;
     }
 
-    public void run(String[] args) throws SmppChannelException, IOException {
-        CliConfig cfg = null;
+    public CliConfig getCliConfig() {
+        return cliConfig;
+    }
 
+    public void setCliConfig(CliConfig cliConfig) {
+        this.cliConfig = cliConfig;
+    }
+
+    public void run(String[] args) throws SmppChannelException, IOException {
         ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(5);
 
         try {
-            cfg = parseArgumets(args);
+            cliConfig = parseArgumets(args);
 
             simulator = new Simulator();
 
             simulator.setScheduledExecutor(asyncPool);
 
-            if (cfg.getFileName() != null) {
+            if (cliConfig.getFileName() != null) {
                 ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
 
                 scriptEngine = scriptEngineManager.getEngineByName("JavaScript");
 
                 invocableEngine = (Invocable)scriptEngine;
 
-                Map<String, String> cfgMap = cfg.getMap();
+                Map<String, String> cfgMap = cliConfig.getMap();
 
                 scriptEngine.put("argumentMap", cfgMap);
 
                 if (!cfgMap.isEmpty()) {
                     for (String key:cfgMap.keySet()) {
-                        scriptEngine.put(key, cfg.getMap().get(key));
+                        scriptEngine.put(key, cliConfig.getMap().get(key));
                     }
                 }
 
                 scriptEngine.put("Logger", scriptLogger);
 
-                Object eval = scriptEngine.eval(new FileReader(cfg.getFileName()));
+                Object eval = scriptEngine.eval(new FileReader(cliConfig.getFileName()));
 
                 try {
                     invocableEngine.invokeFunction(ScriptConstants.HANDLER_ON_START, null);
@@ -88,7 +96,7 @@ class Application {
             }
 
             SmppServerConfiguration configuration = new SmppServerConfiguration();
-            configuration.setPort(cfg.getPort());
+            configuration.setPort(cliConfig.getPort());
             configuration.setMaxConnectionSize(10);
             configuration.setNonBlockingSocketsEnabled(true);
             configuration.setDefaultRequestExpiryTimeout(30000);

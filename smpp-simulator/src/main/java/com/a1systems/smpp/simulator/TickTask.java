@@ -1,11 +1,12 @@
 package com.a1systems.smpp.simulator;
 
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.script.Invocable;
 import javax.script.ScriptException;
 
-class TickTask implements Runnable {
+class TickTask extends TimerTask {
 
     protected Application app;
     protected SimulatorSession simSession;

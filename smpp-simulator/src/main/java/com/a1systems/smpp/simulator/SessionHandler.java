@@ -8,7 +8,9 @@ import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import java.lang.ref.WeakReference;
+import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.script.ScriptException;
@@ -29,10 +31,20 @@ public class SessionHandler extends DefaultSmppSessionHandler {
 
     protected SimulatorSession simulatorSession;
 
+    protected ScheduledFuture<?> tickTaskFuture;
+
+    protected TimerTask tickTask;
+
     public SessionHandler(Application app,SmppSession session, SimulatorSession simSession, ScheduledExecutorService pool) {
         this.sessionRef = new WeakReference<SmppSession>(session);
         this.app = app;
         this.pool = pool;
+
+        this.tickTask = new TickTask(app, simSession);
+
+        final CliConfig cliConfig = app.getCliConfig();
+
+        tickTaskFuture = pool.scheduleAtFixedRate(tickTask, cliConfig.getTickDelay(), cliConfig.getTickDelay(), TimeUnit.MILLISECONDS);
 
         this.simulatorSession = simSession;
     }
@@ -72,6 +84,9 @@ public class SessionHandler extends DefaultSmppSessionHandler {
     @Override
     public void fireChannelUnexpectedlyClosed() {
         logger.error("Channel unexpectedly closed");
+
+        tickTaskFuture.cancel(true);
+        tickTask = null;
 
         if (app.getInvocableEngine() != null) {
             try {

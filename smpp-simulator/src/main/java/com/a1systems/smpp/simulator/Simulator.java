@@ -108,6 +108,19 @@ public class Simulator {
         return CharsetUtil.decode(sequence, encoding);
     }
 
+    public DeliverSm createDeliverSm() {
+        return new DeliverSm();
+    }
+
+    public SubmitSm createSubmitSm() {
+        return new SubmitSm();
+    }
+
+
+    public Address createAddress(String address, int ton, int npi) {
+        return new Address((byte)ton,(byte)npi, address);
+    }
+
     public SubmitSm[] createSubmitSmForConcatinatedMessage(Address source, Address destination, String message, String encoding) throws SmppInvalidArgumentException {
         byte[] encodedString = CharsetUtil.encode(message, encoding);
 
