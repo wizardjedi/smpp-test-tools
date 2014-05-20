@@ -2,7 +2,29 @@ print("file loaded");
 
 Logger.error("Argument Map:[{}]", argumentMap);
 
-writer = new java.io.PrintWriter("the-file-name.csv", "UTF-8");
+writer = new java.io.PrintWriter("log_file.csv", "UTF-8");
+
+function onStart() {
+	print("On start handler");
+
+}
+
+function onTick(simSession) {
+	Logger.error("Tick");
+
+	session = simSession.getSession();
+
+	simulator = simSession.getSimulator();
+
+	dsm = simulator.createDeliverSm();
+
+	dsm.setSourceAddress(simulator.createAddress("79111234567",1,1));
+	dsm.setDestAddress(simulator.createAddress("79111234568",1,1));
+
+	dsm.setShortMessage(simulator.encode("Hello there", "UCS-2"));
+
+	session.sendRequestPdu(dsm, 60000, false);
+}
 
 function onBindRequest(cfg, request) {
 	Logger.error("SystemId:{} Password:{}", cfg.getSystemId(), cfg.getPassword());
