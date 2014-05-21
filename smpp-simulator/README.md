@@ -8,14 +8,14 @@ smpp-simulator uses JDK's `ScriptEngine` to provide ability to create handlers w
 
 Example:
 ```
-$ smpp-simulator -p 5000 -f handlers.js -D const1=1 -D const2=2
+$ smpp-simulator -p 5000 -f handlers.js -D const1=1 -D const2=2 -t 500
 ```
 
-This command will start smpp-simulator on port 5000 with JS-handlers placed in `handlers.js`. This command will place 2 variables to global script context:
+This command will start smpp-simulator on port 5000 (`-p 5000`) with JS-handlers placed in `handlers.js` (`-f handlers.js`). On tick handler will be invoked for every 500 milliseconds (`-t 500`). This command will place 2 variables to global script context (`-D const1=1 -D const2=2`):
  * const1 = 1
  * const2 = 2
 
-handlers.js contains handlers written with JavaScript
+handlers.js contains handlers written with JavaScript. 
 
 # Examples
 
@@ -118,6 +118,8 @@ function onChannelClosed(simulatorSession) {
 * onSessionDestroyed
 * onPduRequest
 * onChannelClosed
+* onStart
+* onTick
 
 # Global objects
 
