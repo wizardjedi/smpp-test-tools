@@ -179,7 +179,6 @@ INFO:  Unbound
 
 # TODO
 * add more handlers
-* add ticks
 * add tests
 * test with JDK 7, JDK 6, OpenJDK 6, OpenJDK 7
 * add setup for logging
