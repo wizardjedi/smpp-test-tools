@@ -86,6 +86,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         if (failLogin != null && failLogin.plusMinutes(10).isAfterNow()) {
             logger.error("{} Login failed by time", session.getConfiguration().getName());
 
+            session.destroy();
+            
             throw new MultiplexerBindException();
         }
         
@@ -155,6 +157,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                     client.stop();
                 }
 
+                session.destroy();
+                
                 throw new MultiplexerBindException();
             }
         } catch (InterruptedException e) {
