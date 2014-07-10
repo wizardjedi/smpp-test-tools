@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,11 +36,13 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     protected ScheduledExecutorService asyncPool;
 
-    List<Application.ConnectionEndpoint> endPoints;
+    protected List<Application.ConnectionEndpoint> endPoints;
 
     protected ConcurrentHashMap<Long, SmppServerSessionHandler> handlers = new ConcurrentHashMap<Long, SmppServerSessionHandler>();
     protected MetricRegistry metricsRegistry;
 
+    protected ConcurrentHashMap<String,DateTime> failedLogins = new ConcurrentHashMap<String, DateTime>();
+    
     public SmppServerHandlerImpl(NioEventLoopGroup group, ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
         this.pool = pool;
 
@@ -94,6 +97,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             session.serverReady(smppServerSessionHandler);
 
             smppServerSessionHandler.processQueuedRequests();
+        } catch (MultiplexerBindException e) {
+            throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
         } catch (Exception ex) {
             logger.error("{}", ex);
 

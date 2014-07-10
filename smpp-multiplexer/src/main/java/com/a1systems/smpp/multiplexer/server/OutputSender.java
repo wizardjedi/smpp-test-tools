@@ -29,6 +29,8 @@ public class OutputSender implements Runnable {
     public void run() {
         if (client.isBound()) {
             try {
+                long start = System.currentTimeMillis();
+                
                 if (pdu instanceof PduRequest) {
                     client.sendRequestPdu((PduRequest)pdu, TimeUnit.SECONDS.toMillis(300), false);
                 } else {
@@ -36,6 +38,15 @@ public class OutputSender implements Runnable {
 
                     client.sendResponsePdu((PduResponse)pdu);
                 }
+                
+                logger
+                    .info(
+                        "Processed by {} output pdu.seq_num:{} type:{} processing took:{}", 
+                        client.getName(),
+                        pdu.getSequenceNumber(),
+                        (pdu.isRequest() ? "req" : "resp"),
+                        System.currentTimeMillis() - start
+                    );
             } catch (Exception ex) {
                 logger.error("{}", ex);
             }

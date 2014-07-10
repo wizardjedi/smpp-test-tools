@@ -113,7 +113,7 @@ public class Application {
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
         serverConfig.setNonBlockingSocketsEnabled(true);
-
+        
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
         String[] configEndPoints = config.getEndPoints().split(",");
@@ -138,10 +138,10 @@ public class Application {
         serverConfig.setSystemId("SMPP-MUX");
 
         serverConfig.setMaxConnectionSize(300);
-        serverConfig.setDefaultWindowSize(10000);
+        serverConfig.setDefaultWindowSize(100000);
         serverConfig.setDefaultRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
         serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
-
+        
         NioEventLoopGroup group = new NioEventLoopGroup();
 
         DefaultSmppServer server;

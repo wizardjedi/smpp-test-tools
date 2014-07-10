@@ -32,6 +32,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +81,14 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         clients = new ArrayList<Client>();
 
+        DateTime failLogin = handler.failedLogins.get(systemId+"/"+password);
+        
+        if (failLogin != null && failLogin.plusMinutes(10).isAfterNow()) {
+            logger.error("{} Login failed by time", session.getConfiguration().getName());
+
+            throw new MultiplexerBindException();
+        }
+        
         for (Application.ConnectionEndpoint c : handler.endPoints) {
             SmppSessionConfiguration cfg = new SmppSessionConfiguration();
             cfg.setHost(c.getHost());
@@ -88,7 +97,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setPassword(password);
             cfg.setRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
             cfg.setWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
-
+            
             cfg.setType(session.getConfiguration().getType());
 
             LoggingOptions lo = new LoggingOptions();
@@ -96,7 +105,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             lo.setLogPdu(false);
             cfg.setLoggingOptions(lo);
 
-            cfg.setWindowSize(10000);
+            cfg.setWindowSize(100000);
             cfg.setName(c.getHost() + ":" + c.getPort() + ":" + systemId + ":" + password);
 
             Client client = new Client(cfg, handler.getSmppClient());
@@ -140,13 +149,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             } else {
                 logger.error("{} Timeout", session.getConfiguration().getName());
 
+                handler.failedLogins.put(systemId+"/"+password, DateTime.now());
+                
                 for (Client client : clients) {
                     client.stop();
                 }
 
-                session.destroy();
-
-                throw new Exception();
+                throw new MultiplexerBindException();
             }
         } catch (InterruptedException e) {
             logger.error("{}", e);
