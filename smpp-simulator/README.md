@@ -186,7 +186,9 @@ INFO:  Unbound
 * add Xmx, Xms
 * add reload file with handlers 
 
+# Limitations
 
+* Script engine is using default javascript engine. But this engine works bad wth multithreading. In tests we've got some unusual behaviour. For some submit_sm we've got multiple submit_sm_resp's. Be very careful with concurrent sessions!
 
 
 
