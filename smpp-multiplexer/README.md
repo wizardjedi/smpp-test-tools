@@ -33,6 +33,8 @@ Smpp-multiplexer will be installed in `/usr/share/smpp-multiplexer/`.
 
 * `/usr/share/smpp-multiplexer/` - root-directory
 * `/usr/share/smpp-multiplexer/log/` - log-directory with log rotating. By default, log files will be rotated by size (300 MB per file) and by date. Old files will be gzipped.
+* `/usr/share/smpp-multiplexer/etc/` - etc folder. Contains properties files. Suchas logback.xml
+* `/usr/share/smpp-multiplexer/plugins/` - directory contains JAR-files with plugins
 * `/usr/share/smpp-multiplexer/lib/` - lib directory with dependencies
 
 # Todo-list
