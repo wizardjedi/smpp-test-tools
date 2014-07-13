@@ -1,5 +1,6 @@
 package com.a1systems.smpp.multiplexer.server;
 
+import com.a1systems.plugin.Authorizer;
 import com.a1systems.smpp.multiplexer.Application;
 import com.a1systems.smpp.multiplexer.client.Client;
 import com.a1systems.smpp.multiplexer.client.ClientSessionHandler;
@@ -24,6 +25,7 @@ import com.cloudhopper.smpp.util.SmppUtil;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -82,15 +84,41 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         clients = new ArrayList<Client>();
 
         DateTime failLogin = handler.failedLogins.get(systemId+"/"+password);
-        
+
         if (failLogin != null && failLogin.plusMinutes(10).isAfterNow()) {
             logger.error("{} Login failed by time", session.getConfiguration().getName());
 
             session.destroy();
-            
+
             throw new MultiplexerBindException();
         }
-        
+
+        ServiceLoader<Authorizer> authorizers = handler.getApp().getAuthorizers();
+
+        if (authorizers.iterator().hasNext()) {
+            boolean auth = false;
+
+            Authorizer authorizer;
+
+            for (Authorizer a:authorizers) {
+                if (a.auth(systemId, password)) {
+                    auth = true;
+
+                    logger.info("{} Login granted by authorizer {}", session.getConfiguration().getName(), a);
+
+                    break;
+                }
+            }
+
+            if (!auth) {
+                logger.error("{} Login failed by authorizers", session.getConfiguration().getName());
+
+                session.destroy();
+
+                throw new MultiplexerBindException();
+            }
+        }
+
         for (Application.ConnectionEndpoint c : handler.endPoints) {
             SmppSessionConfiguration cfg = new SmppSessionConfiguration();
             cfg.setHost(c.getHost());
@@ -99,7 +127,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setPassword(password);
             cfg.setRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
             cfg.setWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
-            
+
             cfg.setType(session.getConfiguration().getType());
 
             LoggingOptions lo = new LoggingOptions();
@@ -152,13 +180,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 logger.error("{} Timeout", session.getConfiguration().getName());
 
                 handler.failedLogins.put(systemId+"/"+password, DateTime.now());
-                
+
                 for (Client client : clients) {
                     client.stop();
                 }
 
                 session.destroy();
-                
+
                 throw new MultiplexerBindException();
             }
         } catch (InterruptedException e) {
@@ -207,12 +235,12 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         for (Client client : clients) {
             client.stop();
         }
-        
+
         clients.clear();
         clients = null;
         aliveClients.clear();
         aliveClients = null;
-        
+
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssm");
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsm");
         handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssmr");
@@ -224,7 +252,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         if (cleanUpFuture != null) {
             cleanUpFuture.cancel(true);
         }
-   
+
         serverSession.destroy();
         serverSession.close();
     }

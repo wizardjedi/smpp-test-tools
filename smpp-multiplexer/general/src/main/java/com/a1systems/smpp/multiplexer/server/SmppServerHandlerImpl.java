@@ -34,6 +34,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     protected ExecutorService pool;
 
+    protected Application app;
+
     protected ScheduledExecutorService asyncPool;
 
     protected List<Application.ConnectionEndpoint> endPoints;
@@ -42,9 +44,11 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
     protected MetricRegistry metricsRegistry;
 
     protected ConcurrentHashMap<String,DateTime> failedLogins = new ConcurrentHashMap<String, DateTime>();
-    
-    public SmppServerHandlerImpl(NioEventLoopGroup group, ExecutorService pool, List<Application.ConnectionEndpoint> endPoints) {
+
+    public SmppServerHandlerImpl(NioEventLoopGroup group, ExecutorService pool, List<Application.ConnectionEndpoint> endPoints, Application app) {
         this.pool = pool;
+
+        this.app = app;
 
         asyncPool = Executors.newScheduledThreadPool(5);
 
@@ -146,5 +150,13 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     public void setMetricsRegistry(MetricRegistry metricsRegistry) {
         this.metricsRegistry = metricsRegistry;
+    }
+
+    public Application getApp() {
+        return app;
+    }
+
+    public void setApp(Application app) {
+        this.app = app;
     }
 }
