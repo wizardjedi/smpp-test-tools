@@ -36,3 +36,5 @@ com.a1systems.plugins.dbauth.DBAuthorizerPlugin
 ```
 
 After that you have to implement `DBAuthorizerPlugin` class.
+
+For using plugins just copy JAR-files to `plugins`-folder and restart application.
