@@ -28,20 +28,29 @@ class InputSender implements Runnable {
         try {
             long start = System.currentTimeMillis();
             
-            if (pdu instanceof PduResponse) {
-                serverSession.sendResponsePdu((PduResponse) pdu);
-            } else {
-                serverSession.sendRequestPdu((PduRequest) pdu, TimeUnit.SECONDS.toMillis(300), false);
-            }
+            if (serverSession != null) {
+                if (pdu instanceof PduResponse) {
+                    serverSession.sendResponsePdu((PduResponse) pdu);
+                } else {
+                    serverSession.sendRequestPdu((PduRequest) pdu, TimeUnit.SECONDS.toMillis(300), false);
+                }
             
-            logger
-                .info(
-                    "Processed {} input pdu.seq_num:{} type:{} processing took:{}", 
-                    serverSession.getConfiguration().getName(),
-                    pdu.getSequenceNumber(), 
-                    (pdu.isRequest() ? "req" : "resp"),
-                    System.currentTimeMillis() - start
-                );
+                logger
+                    .info(
+                        "Processed {} input pdu.seq_num:{} type:{} processing took:{}", 
+                        serverSession.getConfiguration().getName(),
+                        pdu.getSequenceNumber(), 
+                        (pdu.isRequest() ? "req" : "resp"),
+                        System.currentTimeMillis() - start
+                    );
+            } else {
+                logger
+                    .error(
+                        "Session:{} Input sender error. Server session is null. Could not send pdu.seq_num:{}", 
+                        serverSession.getConfiguration().getName(),
+                        pdu.getSequenceNumber()
+                    );
+            }
         } catch (Exception ex) {
             StringWriter sw = new StringWriter();
             

@@ -7,6 +7,7 @@ import com.cloudhopper.smpp.SmppServerHandler;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import com.cloudhopper.smpp.impl.DefaultSmppSession;
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
@@ -14,6 +15,7 @@ import com.cloudhopper.smpp.type.SmppProcessingException;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import io.netty.channel.nio.NioEventLoopGroup;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -27,8 +29,6 @@ import org.slf4j.LoggerFactory;
 public class SmppServerHandlerImpl implements SmppServerHandler {
 
     public static final Logger logger = LoggerFactory.getLogger(SmppServerHandlerImpl.class);
-
-    protected SmppServerSession session;
 
     protected SmppClient smppClient;
 
@@ -67,13 +67,29 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         String systemId = sessionConfiguration.getSystemId();
         String password = sessionConfiguration.getPassword();
 
-        logger.debug("Bind request with {}:{}", systemId, password);
+        String sessionName = systemId + "_" + password + "_" + sessionId;
+        
+        sessionConfiguration.setName(sessionName);
+        
+        logger.debug("{} Bind request with {}:{}", sessionName, systemId, password);
+
+        try {
+            SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, sessionConfiguration, pool, this);
+
+            handlers.put(sessionId, smppServerSessionHandler);
+        } catch (MultiplexerBindException e) {
+            logger.error("{} Multiplexer bind exception", sessionName);
+            
+            throw new SmppProcessingException(SmppConstants.STATUS_INVSYSID);
+        } catch (Exception e) {
+            logger.error("{} Exception while bind request {}", sessionName, e);
+            
+            throw new SmppProcessingException(SmppConstants.STATUS_INVSYSID);
+        }
     }
 
     @Override
     public void sessionCreated(Long sessionId, SmppServerSession session, BaseBindResp preparedBindResponse) throws SmppProcessingException {
-        this.session = session;
-
         SmppSessionConfiguration sessionConfiguration = session.getConfiguration();
 
         String systemId = sessionConfiguration.getSystemId();
@@ -87,32 +103,38 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
         session.getConfiguration().setWriteTimeout(TimeUnit.MILLISECONDS.toMillis(200));
 
-        try {
-            SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, session, pool, this);
+        SmppServerSessionHandler smppServerSessionHandler = handlers.get(sessionId);
 
-            handlers.put(sessionId, smppServerSessionHandler);
+        smppServerSessionHandler.useServerSession(session);
+        
+        String sessionName = systemId + "_" + password + "_" + sessionId;
 
-            String sessionName = systemId + "_" + password + "_" + sessionId;
+        DefaultSmppSession defaultSmppSession = (DefaultSmppSession)session;
+        
+        InetSocketAddress inetRemoteAddr = (InetSocketAddress)defaultSmppSession.getChannel().remoteAddress();
+        
+        String adr = inetRemoteAddr.getHostString()+":"+inetRemoteAddr.getPort();
+        
+        logger.info("Created session sess.id:{} and sess.name:{} for {}", sessionId, sessionName, adr);
 
-            logger.info("Created session sess.id:{} and sess.name:{}", sessionId, sessionName);
+        session.getConfiguration().setName(sessionName);
 
-            session.getConfiguration().setName(sessionName);
+        session.serverReady(smppServerSessionHandler);
 
-            session.serverReady(smppServerSessionHandler);
-
-            smppServerSessionHandler.processQueuedRequests();
-        } catch (MultiplexerBindException e) {
-            throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
-        } catch (Exception ex) {
-            logger.error("{}", ex);
-
-            throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
-        }
+        smppServerSessionHandler.startElinkTask(smppServerSessionHandler);
+        
+        smppServerSessionHandler.processQueuedRequests();        
     }
 
     @Override
     public void sessionDestroyed(Long sessionId, SmppServerSession session) {
-        logger.debug("Session sess.id:{} sess.name:{} destroy", sessionId, session.getConfiguration().getName());
+        DefaultSmppSession defaultSmppSession = (DefaultSmppSession)session;
+        
+        InetSocketAddress inetRemoteAddr = (InetSocketAddress)defaultSmppSession.getChannel().remoteAddress();
+        
+        String adr = inetRemoteAddr.getHostString()+":"+inetRemoteAddr.getPort();
+        
+        logger.debug("Session sess.id:{} sess.name:{} destroy for {}", sessionId, session.getConfiguration().getName(), adr);
 
         SmppServerSessionHandler handler = handlers.get(sessionId);
 

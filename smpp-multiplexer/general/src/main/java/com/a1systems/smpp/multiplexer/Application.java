@@ -114,7 +114,7 @@ public class Application {
             logger.error("Couldnot open manifest");
         }
 
-        logger.info("Application version:{} starting", applicationVersion);
+        logger.info("\n\nApplication version:{} starting\n\n", applicationVersion);
 
         File pluginsDirectory = new File("plugins");
 
@@ -182,7 +182,8 @@ public class Application {
         serverConfig.setSystemId("SMPP-MUX");
 
         serverConfig.setMaxConnectionSize(300);
-        serverConfig.setDefaultWindowSize(100000);
+        // don't set big values
+        serverConfig.setDefaultWindowSize(5000);
         serverConfig.setDefaultRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
         serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
 
