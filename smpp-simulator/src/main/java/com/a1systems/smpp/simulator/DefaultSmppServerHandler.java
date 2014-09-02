@@ -30,7 +30,7 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
 
     @Override
     public void sessionBindRequested(Long sessionId, SmppSessionConfiguration sessionConfiguration, final BaseBind bindRequest) throws SmppProcessingException {
-        sessionConfiguration.setName("Application.SMPP." + sessionConfiguration.getSystemId());
+        sessionConfiguration.setName("Application.SMPP." + sessionConfiguration.getSystemId()+":"+sessionId);
 
         if (app.getInvocableEngine() != null) {
             try {
@@ -73,6 +73,8 @@ public class DefaultSmppServerHandler implements SmppServerHandler {
 
         SessionHandler sessionHandler = new SessionHandler(app, session, simSession, pool);
 
+        sessionHandler.setSessionId(sessionId);
+        
         sessionHandlers.put(sessionId, sessionHandler);
 
         session.serverReady(sessionHandler);
