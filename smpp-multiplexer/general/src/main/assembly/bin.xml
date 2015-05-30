@@ -37,6 +37,16 @@
         </fileSet>
 
         <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>.</outputDirectory>
+            <includes>
+                <include>run.pid</include>
+            </includes>
+            <fileMode>0777</fileMode>
+            <filtered>false</filtered>
+        </fileSet>
+
+        <fileSet>
             <directory>src/main/resources/etc</directory>
             <outputDirectory>etc</outputDirectory>
             <includes>

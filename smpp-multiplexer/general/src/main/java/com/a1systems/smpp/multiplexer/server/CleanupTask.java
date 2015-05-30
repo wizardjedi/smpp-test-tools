@@ -11,15 +11,18 @@ class CleanupTask implements Runnable {
 
     protected static final Logger logger  = LoggerFactory.getLogger(CleanupTask.class);
 
+    protected String sessionName;
+    
     protected WeakReference<ConcurrentHashMap<String, MsgRoute>> map;
 
-    public CleanupTask(ConcurrentHashMap<String, MsgRoute> msgMap) {
+    public CleanupTask(ConcurrentHashMap<String, MsgRoute> msgMap, String sessionName) {
         this.map = new WeakReference<ConcurrentHashMap<String, MsgRoute>>(msgMap);
+        this.sessionName = sessionName;
     }
 
     @Override
     public void run() {
-        logger.info("Started cleanup task");
+        logger.info("Started cleanup task for:{}", sessionName);
 
         if (map.get() != null) {
             ConcurrentHashMap<String, MsgRoute> msgMap = map.get();
@@ -30,7 +33,7 @@ class CleanupTask implements Runnable {
                 MsgRoute route = entry.getValue();
 
                 if (route.getCreateDate().plusMinutes(3).isBeforeNow()) {
-                    logger.debug("Remove entry:{}", entry.getKey());
+                    logger.debug("Remove entry:{} for:{}", entry.getKey(), sessionName);
 
                     msgMap.remove(entry.getKey());
                     
@@ -38,8 +41,12 @@ class CleanupTask implements Runnable {
                 }
             }
             
-            logger.info("Removed {} items", dropped);
+            logger.info("Removed {} items for:{}", dropped, sessionName);
+        } else {
+            logger.info("Nothing to clean up for:{}", sessionName);
         }
+        
+        logger.info("Clean up task completed for:{}", sessionName);
     }
 
 

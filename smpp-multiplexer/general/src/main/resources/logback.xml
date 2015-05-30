@@ -15,14 +15,14 @@
             </timeBasedFileNamingAndTriggeringPolicy>
         </rollingPolicy>
         <encoder>
-            <pattern>%.-19date %msg%n</pattern>
+            <pattern>%.-19date %thread %msg%n</pattern>
         </encoder>
     </appender>
 
 
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{YYYYMMddHHmmss} %msg%n</pattern>
+            <pattern>%date{YYYYMMddHHmmss} %thread %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -30,7 +30,8 @@
 
     <logger name="com.a1systems" level="trace" />
     <logger name="com.a1systems.smpp.multiplexer.server.CleanupTask" level="info" />
-
+    <logger name="com.cloudhopper.smpp.impl.DefaultSmppClient" level="trace" />
+    
     <root level="info">
         <appender-ref ref="console" />
         <appender-ref ref="ROLLING" />

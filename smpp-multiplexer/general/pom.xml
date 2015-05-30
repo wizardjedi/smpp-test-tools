@@ -42,6 +42,8 @@
         <mcp.target.version>1.6</mcp.target.version>
         <mcp.version>3.1</mcp.version>
 
+        <hazelcast.version>3.4.1</hazelcast.version>
+
         <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
         <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
         <jdeb.plugin.version>1.0.1</jdeb.plugin.version>
@@ -67,6 +69,14 @@
     </repositories>
 
     <dependencies>
+        <!-- Hazelcast -->
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast</artifactId>
+            <version>${hazelcast.version}</version>
+        </dependency>
+        
+        
         <!-- JUnit dependency -->
         <dependency>
             <groupId>junit</groupId>
@@ -278,7 +288,7 @@
                                 <data>
                                     <src>${project.build.directory}/assembly_dist-bin/assembly_dist/</src>
                                     <type>directory</type>
-                                    <excludes>**/${project.name}.sh</excludes>
+                                    <excludes>**/${project.name}.sh,**/run.pid</excludes>
                                     <mapper>
                                         <type>perm</type>
                                         <prefix>/usr/share/${project.name}</prefix>
@@ -303,16 +313,17 @@
                                     </paths>
                                     <mapper>
                                         <type>perm</type>
-                                        <filemode>777</filemode>
+                                        <filemode>755</filemode>
+                                        <prefix>/usr/share/${project.name}</prefix>
                                     </mapper>
                                 </data>
 
                                 <data>
-                                    <src>${project.build.directory}/assembly_dist-bin/assembly_dist/${project.name}.sh</src>
+                                    <src>${project.build.directory}/assembly_dist-bin/assembly_dist/run.pid</src>
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>
-                                        <filemode>755</filemode>
+                                        <filemode>777</filemode>
                                         <prefix>/usr/share/${project.name}</prefix>
                                     </mapper>
                                 </data>

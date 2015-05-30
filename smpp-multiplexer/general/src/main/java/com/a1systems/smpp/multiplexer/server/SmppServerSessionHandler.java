@@ -20,11 +20,16 @@ import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
+import com.cloudhopper.smpp.pdu.Unbind;
 import com.cloudhopper.smpp.tlv.TlvConvertException;
 import com.cloudhopper.smpp.type.LoggingOptions;
+import com.cloudhopper.smpp.type.RecoverablePduException;
+import com.cloudhopper.smpp.type.SmppChannelException;
+import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import com.cloudhopper.smpp.util.SmppUtil;
 import com.cloudhopper.smpp.util.TlvUtil;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.util.concurrent.RateLimiter;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +54,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     protected ThreadPoolExecutor pool;
 
+    protected RateLimiter elinkLimiter = RateLimiter.create(1);
+    
     protected ScheduledExecutorService asyncPool;
 
     protected SmppServerHandlerImpl handler;
@@ -65,6 +72,14 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     protected CopyOnWriteArrayList<Client> aliveClients = new CopyOnWriteArrayList<Client>();
     private ScheduledFuture<?> elinkTaskFuture;
 
+    public CopyOnWriteArrayList<Client> getAliveClients() {
+        return aliveClients;
+    }
+
+    public void setAliveClients(CopyOnWriteArrayList<Client> aliveClients) {
+        this.aliveClients = aliveClients;
+    }
+    
     public SmppSession getSession() {
         return session;
     }
@@ -92,8 +107,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         clients = new ArrayList<Client>();
 
         DateTime failLogin = handler.failedLogins.get(systemId+"/"+password);
-
-        if (failLogin != null && failLogin.plusMinutes(10).isAfterNow()) {
+        
+        if (failLogin != null && failLogin.plusMinutes(1).isAfterNow()) {
             logger.error("{} Login failed by time", sessionConfiguration.getName());
             
             throw new MultiplexerBindException();
@@ -132,8 +147,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setSystemId(systemId);
             cfg.setPassword(password);
             cfg.setRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
-            cfg.setWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
-            
+            cfg.setWindowMonitorInterval(TimeUnit.SECONDS.toMillis(30));
+            cfg.setConnectTimeout(TimeUnit.SECONDS.toMillis(5));
             cfg.setType(sessionConfiguration.getType());
 
             LoggingOptions lo = new LoggingOptions();
@@ -145,7 +160,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             cfg.setWindowSize(1000);
             cfg.setName(c.getHost() + ":" + c.getPort() + ":" + systemId + ":" + password);
 
-            Client client = new Client(cfg, handler.getSmppClient());
+            Client client = new Client(cfg, handler.getSmppClient(), c);
 
             client.setHidden(c.isHidden());
 
@@ -173,17 +188,28 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                     binded |= client.isBound();
                 }
 
-            } while ((!binded) && ((System.currentTimeMillis() - start) < 4000));
+            } while ((!binded) && ((System.currentTimeMillis() - start) < 11000));
 
             if (binded) {
-                cleanUpFuture = this.asyncPool.scheduleAtFixedRate(new CleanupTask(msgMap), 60, 60, TimeUnit.SECONDS);
+                cleanUpFuture = 
+                    this
+                        .asyncPool
+                        .scheduleAtFixedRate(
+                            new CleanupTask(
+                                msgMap, 
+                                sessionConfiguration.getName()
+                            ), 
+                            60, 
+                            60, 
+                            TimeUnit.SECONDS
+                        );
 
                 logger.info("{} Create server session",sessionConfiguration.getName());
             } else {
                 logger.error("{} Timeout", sessionConfiguration.getName());
 
                 handler.failedLogins.put(systemId+"/"+password, DateTime.now());
-
+                
                 for (Client client : clients) {
                     client.stop();
                 }
@@ -193,16 +219,46 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         } catch (InterruptedException e) {
             logger.error("{}", e);
         }
-
     }
 
     @Override
     public PduResponse firePduRequestReceived(PduRequest pduRequest) {
 
-        if (pduRequest instanceof EnquireLink) {
-            logger.info("{} Got elink response with elink_resp", session.getConfiguration().getName());
+        if (pduRequest instanceof Unbind) {
             
-            return pduRequest.createResponse();
+            Unbind unbind = (Unbind) pduRequest;
+            
+            logger.info("{} Got unbind:{}", session.getConfiguration().getName(), unbind);
+            
+            try {
+                getSession().sendResponsePdu(unbind.createResponse());
+            } catch (RecoverablePduException ex) {
+                logger.error("{}", ex);
+            } catch (UnrecoverablePduException ex) {
+                logger.error("{}", ex);
+            } catch (SmppChannelException ex) {
+                logger.error("{}", ex);
+            } catch (InterruptedException ex) {
+                logger.error("{}", ex);
+            }
+            
+            session.destroy();
+            session.close();
+        }
+        
+        if (pduRequest instanceof EnquireLink) {
+            if (!elinkLimiter.tryAcquire()) {
+                logger.error("{} Too much elinks. Close channel.", session.getConfiguration().getName());
+                
+                session.destroy();
+                session.close();
+                
+                return null;
+            } else {
+                logger.info("{} Got elink response with elink_resp", session.getConfiguration().getName());
+            
+                return pduRequest.createResponse();
+            }
         }
 
         if (pduRequest instanceof SubmitSm) {
@@ -245,41 +301,67 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     @Override
     public void fireChannelUnexpectedlyClosed() {
-        SmppServerSession serverSession = (SmppServerSession) session;
+        logger.info("Channel unexpectedly closed {}", session.getConfiguration().getName());
+        
+        try {
+            SmppServerSession serverSession = (SmppServerSession) session;
 
-        if (
-            elinkTaskFuture!=null 
-            && !elinkTaskFuture.isCancelled()
-        ) {
-            elinkTaskFuture.cancel(true);
-            elinkTaskFuture = null;
+            if (
+                elinkTaskFuture != null 
+                && !elinkTaskFuture.isCancelled()
+            ) {
+                elinkTaskFuture.cancel(true);
+                elinkTaskFuture = null;
+            }
+
+            logger.info("Server session sess.name:{} unexpectedly closed", serverSession.getConfiguration().getName());
+
+            if (
+                clients != null
+                && !clients.isEmpty()
+            ) {
+                for (Client client : clients) {
+                    client.stop();
+                }
+                
+                clients.clear();
+                clients = null;
+            }
+
+            if (aliveClients != null) {
+                aliveClients.clear();
+                aliveClients = null;
+            }
+            
+            if (
+                handler !=null
+                && handler.getMetricsRegistry() != null
+            ) {
+                handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssm");
+                handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsm");
+                handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssmr");
+                handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsmr");
+            }
+            
+            if (msgMap != null) {
+                msgMap.clear();
+                msgMap = null;
+            }
+            
+            if (cleanUpFuture != null) {
+                cleanUpFuture.cancel(true);
+            }
+
+            if (serverSession != null) {
+                serverSession.destroy();
+                serverSession.close();
+                serverSession = null;
+            }
+            
+            logger.info("Firechannel closed completed");
+        } catch (Exception e) {
+            logger.error("Exception in channel closed handler", e);
         }
-          
-        logger.info("Server session sess.name:{} unexpectedly closed", serverSession.getConfiguration().getName());
-
-        for (Client client : clients) {
-            client.stop();
-        }
-
-        clients.clear();
-        clients = null;
-        aliveClients.clear();
-        aliveClients = null;
-
-        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssm");
-        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsm");
-        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssmr");
-        handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsmr");
-
-        msgMap.clear();
-        msgMap = null;
-
-        if (cleanUpFuture != null) {
-            cleanUpFuture.cancel(true);
-        }
-
-        serverSession.destroy();
-        serverSession.close();
     }
 
     @Override
@@ -299,7 +381,8 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                     ((SmppSession)session).getConfiguration().getName()
                 );
             
-            getSession().destroy();
+            session.destroy(); 
+            session.close();
         }
     }
 
@@ -392,7 +475,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             ssm.removeSequenceNumber();
 
-            pool.submit(new OutputSender(c, (SmppServerSession) session, ssm));
+            MetricRegistry registry = handler.getMetricsRegistry();
+            
+            pool.submit(new OutputSender(c, (SmppServerSession) session, ssm, System.currentTimeMillis(), registry));
+            
+            MetricsHelper.poolQueueSize(registry, pool.getQueue().size());
         }
     }
 
@@ -420,7 +507,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         metricsRegistry.meter(session.getConfiguration().getName() + "_ssmr").mark();
         metricsRegistry.meter("total_ssmr").mark();
         
-        pool.submit(new InputSender(serverSession, submitSmResp));
+        pool.submit(new InputSender(serverSession, submitSmResp, System.currentTimeMillis(), metricsRegistry));
+        
+        int size = pool.getQueue().size();
+        
+        MetricsHelper.poolQueueSize(metricsRegistry, pool.getQueue().size());
     }
 
     public void processDeliverSm(DeliverSm deliverSm) {
@@ -440,7 +531,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         deliverSm.removeSequenceNumber();
 
-        pool.submit(new InputSender((SmppServerSession) session, deliverSm));
+        MetricRegistry metricsRegistry = handler.getMetricsRegistry();
+        
+        pool.submit(new InputSender((SmppServerSession) session, deliverSm, System.currentTimeMillis(), metricsRegistry));
+        
+        int size = pool.getQueue().size();
+        
+        MetricsHelper.poolQueueSize(metricsRegistry, size);
     }
 
     public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
@@ -469,7 +566,9 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                         deliverSmResp.getSequenceNumber()
                 );
 
-        pool.submit(new OutputSender(c, serverSession, deliverSmResp));
+        pool.submit(new OutputSender(c, serverSession, deliverSmResp, System.currentTimeMillis(), metricsRegistry));
+        
+        MetricsHelper.poolQueueSize(metricsRegistry, pool.getQueue().size());
     }
 
     public void clientBinding(Client client) {

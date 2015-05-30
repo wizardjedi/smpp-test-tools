@@ -1,5 +1,6 @@
 package com.a1systems.smpp.multiplexer.client;
 
+import com.a1systems.smpp.multiplexer.Application;
 import com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler;
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.SmppSession;
@@ -11,6 +12,7 @@ import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
+import io.netty.channel.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,4 +100,28 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
         
         client.bind();
     }
+
+    @Override
+    public void fireUnknownThrowable(Throwable t) {
+        if (t instanceof ConnectTimeoutException) {
+            Application.ConnectionEndpoint endpoint = client.getEndpoint();
+            
+            if (endpoint != null) {
+                endpoint.markLastFailedConnection();
+                
+                logger
+                    .error(
+                        "{} Couldnot connect with timeout. Mark endpoint {} with failed connection.", 
+                        client.toStringConnectionParams(),
+                        endpoint
+                    );
+            }
+            
+            
+        } else {
+            super.fireUnknownThrowable(t);
+        }
+    }
+    
+    
 }

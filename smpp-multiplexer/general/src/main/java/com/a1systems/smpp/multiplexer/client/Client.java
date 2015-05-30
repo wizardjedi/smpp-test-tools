@@ -1,5 +1,6 @@
 package com.a1systems.smpp.multiplexer.client;
 
+import com.a1systems.smpp.multiplexer.Application;
 import com.a1systems.smpp.multiplexer.server.SmppServerSessionHandler;
 import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppServerSession;
@@ -55,6 +56,8 @@ public class Client {
 
     protected SmppClient smppClient;
 
+    protected Application.ConnectionEndpoint endpoint;
+    
     protected ScheduledExecutorService timer;
 
     protected ScheduledFuture<?> elinkTask;
@@ -78,12 +81,14 @@ public class Client {
     protected String name;
 
     public Client(SmppSessionConfiguration cfg) {
-        this(cfg, null);
+        this(cfg, null, null);
     }
 
-    public Client(SmppSessionConfiguration cfg, SmppClient smppClient) {
+    public Client(SmppSessionConfiguration cfg, SmppClient smppClient, Application.ConnectionEndpoint endpoint) {
         this.cfg = cfg;
 
+        this.endpoint = endpoint;
+        
         this.smppClient = smppClient;
      
         this.state = ClientState.IDLE;
@@ -208,6 +213,14 @@ public class Client {
         this.requests.add(pdu);
     }
 
+    public Application.ConnectionEndpoint getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(Application.ConnectionEndpoint endpoint) {
+        this.endpoint = endpoint;
+    }
+    
     public PduRequest getFromQueue() {
         return this.requests.poll();
     }

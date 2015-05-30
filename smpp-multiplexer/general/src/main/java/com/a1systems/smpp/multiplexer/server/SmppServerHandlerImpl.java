@@ -12,7 +12,9 @@ import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppProcessingException;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import io.netty.channel.nio.NioEventLoopGroup;
 import java.net.InetSocketAddress;
@@ -34,32 +36,43 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     protected ExecutorService pool;
 
-    protected Application app;
-
     protected ScheduledExecutorService asyncPool;
+    protected ScheduledExecutorService monitorExecutor;
 
     protected List<Application.ConnectionEndpoint> endPoints;
 
     protected ConcurrentHashMap<Long, SmppServerSessionHandler> handlers = new ConcurrentHashMap<Long, SmppServerSessionHandler>();
     protected MetricRegistry metricsRegistry;
 
-    protected ConcurrentHashMap<String,DateTime> failedLogins = new ConcurrentHashMap<String, DateTime>();
+    protected ConcurrentHashMap<String, DateTime> failedLogins = new ConcurrentHashMap<String, DateTime>();
 
-    public SmppServerHandlerImpl(NioEventLoopGroup group, ExecutorService pool, List<Application.ConnectionEndpoint> endPoints, Application app) {
+    public SmppServerHandlerImpl(
+        NioEventLoopGroup group, 
+        ExecutorService pool, 
+        List<Application.ConnectionEndpoint> endPoints,
+        ScheduledExecutorService asyncPool,
+        ScheduledExecutorService monitorExecutor,
+        MetricRegistry metricsRegistry
+    ) {
         this.pool = pool;
 
-        this.app = app;
+        this.asyncPool = asyncPool;
 
-        asyncPool = Executors.newScheduledThreadPool(5);
+        this.metricsRegistry = metricsRegistry;
 
-        metricsRegistry = new MetricRegistry();
-
+        this.monitorExecutor = monitorExecutor;
+        
         final JmxReporter reporter = JmxReporter.forRegistry(metricsRegistry).build();
         reporter.start();
 
-        this.smppClient = new DefaultSmppClient(group, asyncPool);
+        this.smppClient = new DefaultSmppClient(group, monitorExecutor);
 
         this.endPoints = endPoints;
+        
+        asyncPool.scheduleWithFixedDelay(new CleanupFailedLogins(failedLogins), 10, 10, TimeUnit.MINUTES);
+        
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_FAILEDLOGINS_SIZE, new MapSizeGauge(failedLogins));
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_HANDLERS_SIZE, new MapSizeGauge(handlers));
     }
 
     @Override
@@ -77,14 +90,20 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             SmppServerSessionHandler smppServerSessionHandler = new SmppServerSessionHandler(systemId, password, sessionConfiguration, pool, this);
 
             handlers.put(sessionId, smppServerSessionHandler);
+            
+            MetricsHelper.successLogins(metricsRegistry);
         } catch (MultiplexerBindException e) {
             logger.error("{} Multiplexer bind exception", sessionName);
             
-            throw new SmppProcessingException(SmppConstants.STATUS_INVSYSID);
+            MetricsHelper.failedLogins(metricsRegistry);
+            
+            throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
         } catch (Exception e) {
             logger.error("{} Exception while bind request {}", sessionName, e);
             
-            throw new SmppProcessingException(SmppConstants.STATUS_INVSYSID);
+            MetricsHelper.failedLogins(metricsRegistry);
+            
+            throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
         }
     }
 
@@ -139,11 +158,16 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         SmppServerSessionHandler handler = handlers.get(sessionId);
 
         handler.fireChannelUnexpectedlyClosed();
+        SmppServerSessionHandler prev = handlers.remove(sessionId);
 
-        handlers.remove(sessionId);
-
+        if (prev == null) {
+            logger.error("Could not remove handler {}", sessionId);
+        }
+        
         session.close();
         session.destroy();
+        
+        logger.info("Destroy channel completed for {}", session.getConfiguration().getName());
     }
 
     public SmppClient getSmppClient() {
@@ -174,11 +198,21 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         this.metricsRegistry = metricsRegistry;
     }
 
-    public Application getApp() {
-        return app;
+    public ConcurrentHashMap<Long, SmppServerSessionHandler> getHandlers() {
+        return handlers;
     }
 
-    public void setApp(Application app) {
-        this.app = app;
+    public void setHandlers(ConcurrentHashMap<Long, SmppServerSessionHandler> handlers) {
+        this.handlers = handlers;
     }
+
+    public ConcurrentHashMap<String, DateTime> getFailedLogins() {
+        return failedLogins;
+    }
+
+    public void setFailedLogins(ConcurrentHashMap<String, DateTime> failedLogins) {
+        this.failedLogins = failedLogins;
+    }
+    
+    
 }

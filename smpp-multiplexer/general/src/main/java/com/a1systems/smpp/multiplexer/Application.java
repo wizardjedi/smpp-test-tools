@@ -1,10 +1,14 @@
 package com.a1systems.smpp.multiplexer;
 
 import com.a1systems.plugin.Authorizer;
+import com.a1systems.smpp.multiplexer.server.MetricsHelper;
+import com.a1systems.smpp.multiplexer.server.PoolActiveSizeGauge;
+import com.a1systems.smpp.multiplexer.server.PoolQueueSizeGauge;
 import com.a1systems.smpp.multiplexer.server.SmppServerHandlerImpl;
 import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
+import com.codahale.metrics.MetricRegistry;
 import io.netty.channel.nio.NioEventLoopGroup;
 import java.io.File;
 import java.io.IOException;
@@ -18,9 +22,11 @@ import java.util.ServiceLoader;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import org.joda.time.DateTime;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -31,6 +37,12 @@ public class Application {
     public static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     protected ExecutorService pool;
+    protected ScheduledExecutorService asyncPool;
+    protected ScheduledExecutorService monitorPool;
+    private NioEventLoopGroup clientGroup;
+    private NioEventLoopGroup nioGroup;
+    private DefaultSmppServer server;
+    private SmppServerHandlerImpl serverHandler;
 
     protected ServiceLoader<Authorizer> authorizers;
 
@@ -39,7 +51,8 @@ public class Application {
         protected String host;
         protected int port;
         protected boolean hidden = false;
-
+        protected volatile DateTime lastFailedConnection = null;
+        
         public static ConnectionEndpoint create(String host, int port, boolean hidden) {
             ConnectionEndpoint c = new ConnectionEndpoint();
 
@@ -50,6 +63,18 @@ public class Application {
             return c;
         }
 
+        public void markLastFailedConnection() {
+            this.lastFailedConnection = DateTime.now();
+        }
+        
+        public DateTime getLastFailedConnection() {
+            return lastFailedConnection;
+        }
+
+        public void setLastFailedConnection(DateTime lastFailedConnection) {
+            this.lastFailedConnection = lastFailedConnection;
+        }
+        
         public boolean isHidden() {
             return hidden;
         }
@@ -76,7 +101,7 @@ public class Application {
 
         @Override
         public String toString() {
-            return "ConnectionEndpoint{" + "host=" + host + ", port=" + port + ", hidden=" + hidden + '}';
+            return "ConnectionEndpoint{" + "host=" + host + ", port=" + port + ", hidden=" + hidden + ", lastFailedConnection=" + lastFailedConnection + '}';
         }
     }
 
@@ -88,6 +113,56 @@ public class Application {
         this.pool = pool;
     }
 
+    
+    
+    public ScheduledExecutorService getAsyncPool() {
+        return asyncPool;
+    }
+
+    public void setAsyncPool(ScheduledExecutorService asyncPool) {
+        this.asyncPool = asyncPool;
+    }
+
+    public ScheduledExecutorService getMonitorPool() {
+        return monitorPool;
+    }
+
+    public void setMonitorPool(ScheduledExecutorService monitorPool) {
+        this.monitorPool = monitorPool;
+    }
+
+    public SmppServerHandlerImpl getServerHandler() {
+        return serverHandler;
+    }
+
+    public void setServerHandler(SmppServerHandlerImpl serverHandler) {
+        this.serverHandler = serverHandler;
+    }
+
+    public DefaultSmppServer getServer() {
+        return server;
+    }
+
+    public void setServer(DefaultSmppServer server) {
+        this.server = server;
+    }
+
+    public NioEventLoopGroup getClientGroup() {
+        return clientGroup;
+    }
+
+    public void setClientGroup(NioEventLoopGroup clientGroup) {
+        this.clientGroup = clientGroup;
+    }
+
+    public NioEventLoopGroup getNioGroup() {
+        return nioGroup;
+    }
+
+    public void setNioGroup(NioEventLoopGroup nioGroup) {
+        this.nioGroup = nioGroup;
+    }
+    
     public void run(CliConfig config) throws SmppChannelException {
         String applicationVersion = "undefined";
 
@@ -95,8 +170,6 @@ public class Application {
             Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
             while (resources.hasMoreElements()) {
                 URL elem = resources.nextElement();
-
-                logger.error("-> {}", elem);
 
                 Manifest manifest = new Manifest(elem.openStream());
 
@@ -150,14 +223,17 @@ public class Application {
             a.start();
         }
 
-        pool = Executors.newFixedThreadPool(30);
+        pool = Executors.newFixedThreadPool(20);
 
-        ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(5);
-
+        ScheduledExecutorService reportPool = Executors.newScheduledThreadPool(1);
+        asyncPool = Executors.newScheduledThreadPool(15);
+        monitorPool = Executors.newScheduledThreadPool(15);
+        
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
         serverConfig.setNonBlockingSocketsEnabled(true);
-
+        serverConfig.setBindTimeout(TimeUnit.SECONDS.toMillis(20));
+        
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
         String[] configEndPoints = config.getEndPoints().split(",");
@@ -183,20 +259,35 @@ public class Application {
 
         serverConfig.setMaxConnectionSize(300);
         // don't set big values
-        serverConfig.setDefaultWindowSize(5000);
+        serverConfig.setDefaultWindowSize(2500);
         serverConfig.setDefaultRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
-        serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(60));
-
-        NioEventLoopGroup group = new NioEventLoopGroup();
-
-        DefaultSmppServer server;
-        server = new DefaultSmppServer(serverConfig, new SmppServerHandlerImpl(group, pool, endPoints, this), asyncPool, group, group);
+        serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(15));
+        
+        nioGroup = new NioEventLoopGroup();
+        clientGroup = new NioEventLoopGroup();
+        
+        MetricRegistry metricsRegistry = new MetricRegistry();
+        
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_ASYNC_POOL_QUEUE_SIZE, new PoolQueueSizeGauge((ThreadPoolExecutor) asyncPool));
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_ACTIVE_ASYNC_POOL_SIZE, new PoolActiveSizeGauge((ThreadPoolExecutor) asyncPool));
+        
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_MONITOR_POOL_QUEUE_SIZE, new PoolQueueSizeGauge((ThreadPoolExecutor) monitorPool));
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_ACTIVE_MONITOR_POOL_SIZE, new PoolActiveSizeGauge((ThreadPoolExecutor) monitorPool));
+        
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_POOL_QUEUE_SIZE, new PoolQueueSizeGauge((ThreadPoolExecutor) pool));
+        metricsRegistry.register(MetricsHelper.JMX_GAUGE_ACTIVE_POOL_SIZE, new PoolActiveSizeGauge((ThreadPoolExecutor) pool));
+        
+        serverHandler = new SmppServerHandlerImpl(clientGroup, pool, endPoints, asyncPool, monitorPool, metricsRegistry);
+        
+        server = new DefaultSmppServer(serverConfig, serverHandler, monitorPool, nioGroup, nioGroup);
 
         logger.info("Smpp server starting");
 
         server.start();
 
         logger.info("Smpp server started");
+        
+        reportPool.scheduleAtFixedRate(new ReportTask(this), 1, 1, TimeUnit.MINUTES);
     }
 
     public ServiceLoader<Authorizer> getAuthorizers() {
