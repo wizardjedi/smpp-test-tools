@@ -56,6 +56,10 @@ public class DeliveryTask implements Runnable {
 
             receipt.setState(receiptState);
 
+            receipt.setSubmitCount(1);
+            receipt.setDeliveredCount(0);
+            receipt.setErrorCode(7);
+            
             String str = receipt.toShortMessage();
 
             byte[] msgBuffer = CharsetUtil.encode(str, CharsetUtil.CHARSET_GSM8);

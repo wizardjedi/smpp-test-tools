@@ -58,7 +58,7 @@ class Application {
     }
 
     public void run(String[] args) throws SmppChannelException, IOException {
-        ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(5);
+        ScheduledExecutorService asyncPool = Executors.newScheduledThreadPool(15);
 
         try {
             cliConfig = parseArgumets(args);
@@ -101,7 +101,7 @@ class Application {
             configuration.setNonBlockingSocketsEnabled(true);
             configuration.setDefaultRequestExpiryTimeout(30000);
             configuration.setDefaultWindowMonitorInterval(15000);
-            configuration.setDefaultWindowSize(500);
+            configuration.setDefaultWindowSize(50000);
             configuration.setDefaultWindowWaitTimeout(configuration.getDefaultRequestExpiryTimeout());
             configuration.setDefaultSessionCountersEnabled(true);
             configuration.setJmxEnabled(true);

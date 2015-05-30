@@ -1,0 +1,39 @@
+Bad clients:
+ SMPP Connection and flow:
+ * Do not send elink
+ * Send elink too fast
+ * Send elink too slow
+ * Do not response with elink_resp
+ * Unexpextedly drop connection
+ * Do not response to deliver_sm
+ * Trying to connect with many sessions (semibad)
+ * Do not waiting for unbind (semibad)
+ * Do not wait on throttling error
+ * Too much connections / binds without delay
+ * Drop connection on error in resp
+ * Drop connection after request packet send
+ * Sending submit_sm with expired absolute validity_period
+ * Sending submit_sm with expired absolute scheduled_delivery_time
+ * Drop connection after bind (not waiting for bind_resp)
+ * Do not limit speed from client / not using windowing
+ * Bind session for a single message
+ Encoding:
+ * Using ASCI in short_message (semibad)
+ * Using utf-8 in short_message (semibad)
+ * Using ASCII with gsm-7bit encoding (mostly bad)
+ * Using 160-byte-lengthed messages for encoding to 7bit on SMSc side (mostly bad)
+ PDU encoding:
+ * Using numbers started with 8 (semibad, bad for Russia)
+ * Using DEF-numbers with incorrect TON/NPI
+ * Using Alpha-numbers with incorrect TON/NPI
+ * Using + or 00 in International numbers (TON/NPI 1/1)
+ * Using shortnumbers with incorrect TON/NPI
+ UDH / SAR concatination:
+ * Incorrect length for SAR-concatination
+ * Incorrect length for UDH-concatination
+ * Incorrect UDH-concatination (8 bit/16 bit/custom)
+ * Incorrect esm_class with UDH
+ * Incorrect number of messages and message number (semibad)
+ * Incorrect order of parts (semibad)
+ * Sending not all parts with current connection (semibad)
+ * Sending all parts only after receiving deliver_sm for first part

@@ -88,7 +88,7 @@ public class SessionHandler extends DefaultSmppSessionHandler {
 
                 logger.error("return resp:{}");
                 
-                //pool.schedule(new DeliveryTask(session, (SubmitSm)pduRequest, id), 1, TimeUnit.SECONDS);
+                pool.schedule(new DeliveryTask(session, (SubmitSm)pduRequest, id), 1, TimeUnit.SECONDS);
 
                 return resp;
             } else {
