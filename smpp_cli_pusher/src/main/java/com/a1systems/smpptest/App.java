@@ -165,8 +165,8 @@ public class App {
 
 			Address a = new Address();
 
-			a.setTon((byte)spelParse(parts[0], Byte.class));
-			a.setNpi((byte)spelParse(parts[1], Byte.class));
+			a.setTon((byte)((Byte)spelParse(parts[0], Byte.class)));
+			a.setNpi((byte)((Byte)spelParse(parts[1], Byte.class)));
 
 			a.setAddress(parts[2]);
 
