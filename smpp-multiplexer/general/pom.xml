@@ -1,0 +1,344 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.a1systems</groupId>
+    <artifactId>smpp-multiplexer-general</artifactId>
+    <version>1.0</version>
+    <name>smpp-multiplexer</name>
+    <url>http://maven.apache.org</url>
+    <packaging>jar</packaging>
+
+    <parent>
+        <groupId>com.a1systems</groupId>
+        <artifactId>smpp-multiplexer</artifactId>
+        <version>1.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <scm>
+        <connection>scm:svn:http://127.0.0.1/svn/my-project</connection>
+        <developerConnection>scm:svn:https://127.0.0.1/svn/my-project</developerConnection>
+        <tag>HEAD</tag>
+        <url>http://127.0.0.1/websvn/my-project</url>
+    </scm>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <slf4j.version>1.7.7</slf4j.version>
+        <logback.version>1.1.2</logback.version>
+
+        <junit.version>4.11</junit.version>
+
+        <ch.smpp.version>6.0.0-20140508.055442-5</ch.smpp.version>
+        <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
+        <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
+
+        <guava.version>17.0</guava.version>
+
+        <metrics.version>3.0.2</metrics.version>
+
+        <mcp.source.version>1.6</mcp.source.version>
+        <mcp.target.version>1.6</mcp.target.version>
+        <mcp.version>3.1</mcp.version>
+
+        <hazelcast.version>3.4.1</hazelcast.version>
+
+        <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
+        <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
+        <jdeb.plugin.version>1.0.1</jdeb.plugin.version>
+
+        <args4j.version>2.0.26</args4j.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>libs-release</name>
+            <url>http://artifactory.a1s/artifactory/libs-release</url>
+        </repository>
+        <repository>
+            <snapshots />
+            <id>snapshots</id>
+            <name>libs-snapshot</name>
+            <url>http://artifactory.a1s/artifactory/libs-snapshot</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- Hazelcast -->
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast</artifactId>
+            <version>${hazelcast.version}</version>
+        </dependency>
+        
+        
+        <!-- JUnit dependency -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ARGS4J -->
+
+        <dependency>
+            <groupId>args4j</groupId>
+            <artifactId>args4j</artifactId>
+            <version>${args4j.version}</version>
+        </dependency>
+
+        <!-- Cloudhopper smpp library -->
+
+        <!--dependency>
+            <groupId>com.cloudhopper</groupId>
+            <artifactId>ch-smpp</artifactId>
+            <version>${ch.smpp.version}</version>
+        </dependency-->
+
+        <dependency>
+            <groupId>com.cloudhopper</groupId>
+            <artifactId>a1s-ch-smpp</artifactId>
+            <version>${ch.smpp.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.cloudhopper</groupId>
+            <artifactId>ch-commons-gsm</artifactId>
+            <version>${ch.commons.gsm.version}</version>
+        </dependency>
+
+        <dependency>
+            <artifactId>ch-commons-charset</artifactId>
+            <groupId>com.cloudhopper</groupId>
+            <type>jar</type>
+            <version>${ch.commons.charset.version}</version>
+        </dependency>
+
+        <!-- logback -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-access</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+
+        <!-- SLF4J -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <type>jar</type>
+        </dependency>
+
+        <!-- Google Guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+
+        <!-- metrics -->
+
+        <dependency>
+            <groupId>com.codahale.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.codahale.metrics</groupId>
+            <artifactId>metrics-servlets</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <finalName>${project.name}-${buildNumber}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${mcp.version}</version>
+                <configuration>
+                    <source>${mcp.source.version}</source>
+                    <target>${mcp.target.version}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <addMavenDescriptor>false</addMavenDescriptor>
+                        <compress>true</compress>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>libs/</classpathPrefix>
+                            <mainClass>com.a1systems.smpp.multiplexer.App</mainClass>
+                        </manifest>
+                        <manifestEntries>
+                            <Implementation-Build>${buildNumber}</Implementation-Build>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+                <version>${maven.jar.plugin.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+                <version>${maven.dependency.plugin.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.1</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <revisionOnScmFailure>1</revisionOnScmFailure>
+                    <doCheck>true</doCheck>
+                    <buildNumberPropertyName>buildNumber</buildNumberPropertyName>
+                    <doUpdate>true</doUpdate>
+                    <format>${project.version}.build{0,number}</format>
+                    <items>
+                        <item>buildNumber</item>
+                    </items>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <descriptor>src/main/assembly/bin.xml</descriptor>
+                    <finalName>assembly_dist</finalName>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>jdeb</artifactId>
+                <groupId>org.vafer</groupId>
+                <version>${jdeb.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jdeb</goal>
+                        </goals>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <controlDir>${basedir}/src/deb/control</controlDir>
+                            <dataSet>
+                                <data>
+                                    <src>${project.build.directory}/assembly_dist-bin/assembly_dist/</src>
+                                    <type>directory</type>
+                                    <excludes>**/${project.name}.sh,**/run.pid</excludes>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <prefix>/usr/share/${project.name}</prefix>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <type>template</type>
+                                    <paths>
+                                        <path>/usr/share/${project.name}/log</path>
+                                    </paths>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <filemode>777</filemode>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <type>template</type>
+                                    <paths>
+                                        <path>/usr/share/${project.name}/plugins</path>
+                                    </paths>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <filemode>755</filemode>
+                                        <prefix>/usr/share/${project.name}</prefix>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <src>${project.build.directory}/assembly_dist-bin/assembly_dist/run.pid</src>
+                                    <type>file</type>
+                                    <mapper>
+                                        <type>perm</type>
+                                        <filemode>777</filemode>
+                                        <prefix>/usr/share/${project.name}</prefix>
+                                    </mapper>
+                                </data>
+
+                                <data>
+                                    <type>link</type>
+                                    <symlink>true</symlink>
+                                    <linkName>/usr/bin/${project.name}</linkName>
+                                    <linkTarget>/usr/share/${project.name}/${project.name}.sh</linkTarget>
+                                </data>
+                            </dataSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

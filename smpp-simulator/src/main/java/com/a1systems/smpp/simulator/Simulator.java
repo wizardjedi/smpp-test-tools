@@ -1,23 +1,34 @@
 package com.a1systems.smpp.simulator;
 
+import com.cloudhopper.commons.charset.CharsetUtil;
+import com.cloudhopper.commons.gsm.GsmUtil;
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.pdu.DeliverSm;
 import com.cloudhopper.smpp.pdu.SubmitSm;
-import com.cloudhopper.smpp.tlv.Tlv;
+import com.cloudhopper.smpp.type.Address;
 import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import com.cloudhopper.smpp.util.DeliveryReceipt;
+import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Simulator {
+
+    public static final Logger logger = LoggerFactory.getLogger(Simulator.class);
+
+    protected static Random randomizer;
+
+    static {
+        randomizer = new Random();
+    }
 
     protected ScheduledExecutorService scheduledExecutor;
 
@@ -42,7 +53,7 @@ public class Simulator {
     public DeliverSm setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, String sendDate, String deliveryDate, int errorCode) {
         return setUpDeliveryReceipt(dsm, messageId, status, DateTime.parse(sendDate), DateTime.parse(deliveryDate), errorCode);
     }
-    
+
     public DeliverSm setUpDeliveryReceipt(DeliverSm dsm, String messageId, String status, DateTime sendDate, DateTime deliveryDate, int errorCode) {
         DeliveryReceipt dr = new DeliveryReceipt();
 
@@ -67,24 +78,77 @@ public class Simulator {
         scheduledExecutor
             .schedule(
                 new Runnable() {
+                    @Override
                     public void run() {
                         try {
                             session.sendRequestPdu(deliverSm, TimeUnit.SECONDS.toMillis(60), false);
                         } catch (RecoverablePduException ex) {
-                            Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+                            logger.error("{}", ex);
                         } catch (UnrecoverablePduException ex) {
-                            Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+                            logger.error("{}", ex);
                         } catch (SmppTimeoutException ex) {
-                            Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+                            logger.error("{}", ex);
                         } catch (SmppChannelException ex) {
-                            Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+                            logger.error("{}", ex);
                         } catch (InterruptedException ex) {
-                            Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+                            logger.error("{}", ex);
                         }
                     }
             },
             delayMillis,
             TimeUnit.MILLISECONDS
         );
+    }
+
+    public byte[] encode(String string, String encoding) {
+        return CharsetUtil.encode(string, encoding);
+    }
+
+    public String decode(byte[] sequence, String encoding) {
+        return CharsetUtil.decode(sequence, encoding);
+    }
+
+    public DeliverSm createDeliverSm() {
+        return new DeliverSm();
+    }
+
+    public SubmitSm createSubmitSm() {
+        return new SubmitSm();
+    }
+
+
+    public Address createAddress(String address, int ton, int npi) {
+        return new Address((byte)ton,(byte)npi, address);
+    }
+
+    public SubmitSm[] createSubmitSmForConcatinatedMessage(Address source, Address destination, String message, String encoding) throws SmppInvalidArgumentException {
+        byte[] encodedString = CharsetUtil.encode(message, encoding);
+
+        if (encodedString.length > 140) {
+            int nextInt = randomizer.nextInt();
+            byte[][] parts = GsmUtil.createConcatenatedBinaryShortMessages(encodedString, (byte)nextInt);
+
+            SubmitSm[] list = new SubmitSm[parts.length];
+
+            for (int i=0;i<parts.length;i++) {
+                SubmitSm sm = new SubmitSm();
+                sm.setSourceAddress(source);
+                sm.setDestAddress(destination);
+                sm.setShortMessage(parts[i]);
+
+                sm.setEsmClass(SmppConstants.ESM_CLASS_UDHI_MASK);
+
+                list[i] = sm;
+            }
+
+            return list;
+        } else {
+            SubmitSm sm = new SubmitSm();
+            sm.setSourceAddress(source);
+            sm.setDestAddress(destination);
+            sm.setShortMessage(encodedString);
+
+            return new SubmitSm[] {sm};
+        }
     }
 }

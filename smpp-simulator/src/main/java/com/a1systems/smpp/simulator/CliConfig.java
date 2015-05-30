@@ -14,6 +14,17 @@ class CliConfig {
     @Option(name = "-D", usage = "Add arguments for scripts. Example, -D arg1=test -D arg2=test2")
     protected Map<String, String> map = new HashMap<String, String>();
 
+    @Option(name = "-t", usage = "Set tick delay in milliseconds. Default value is 1000 millis")
+    protected int tickDelay = 1000;
+
+    public int getTickDelay() {
+        return tickDelay;
+    }
+
+    public void setTickDelay(int tickDelay) {
+        this.tickDelay = tickDelay;
+    }
+
     public Map<String, String> getMap() {
         return map;
     }
