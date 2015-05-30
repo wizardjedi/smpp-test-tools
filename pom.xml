@@ -9,11 +9,11 @@
     <modules>
         <module>defcode_recognizer</module>
         <module>smpp_cli_pusher</module>
-    <module>range_slicer</module>
-    <module>http-adapter</module>
-    <module>smpp-simulator</module>
-    <module>smpp-zabbix-checker</module>
-    <module>smpp-multiplexer</module>
+        <module>range_slicer</module>
+        <module>http-adapter</module>
+        <module>smpp-simulator</module>
+        <module>smpp-zabbix-checker</module>
+        <module>smpp-multiplexer</module>
         <module>log-watcher</module>
     </modules>
 </project>
