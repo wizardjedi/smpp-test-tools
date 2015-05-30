@@ -6,4 +6,7 @@ public class DbLoaderTask implements Runnable {
     public DbLoaderTask(Application app) {
         this.application = app;
     }
+
+    public void run() {
+    }
 }
