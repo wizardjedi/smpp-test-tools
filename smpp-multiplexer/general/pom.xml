@@ -30,7 +30,7 @@
 
         <junit.version>4.11</junit.version>
 
-        <ch.smpp.version>6.0.0-20140508.055442-5</ch.smpp.version>
+        <ch.smpp.version>[5.0.0,)</ch.smpp.version>
         <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
         <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
 
@@ -51,7 +51,7 @@
         <args4j.version>2.0.26</args4j.version>
     </properties>
 
-    <repositories>
+    <!--repositories>
         <repository>
             <snapshots>
                 <enabled>false</enabled>
@@ -66,15 +66,15 @@
             <name>libs-snapshot</name>
             <url>http://artifactory.a1s/artifactory/libs-snapshot</url>
         </repository>
-    </repositories>
+    </repositories-->
 
     <dependencies>
         <!-- Hazelcast -->
-        <dependency>
+        <!--dependency>
             <groupId>com.hazelcast</groupId>
             <artifactId>hazelcast</artifactId>
             <version>${hazelcast.version}</version>
-        </dependency>
+        </dependency-->
         
         
         <!-- JUnit dependency -->
@@ -103,7 +103,7 @@
 
         <dependency>
             <groupId>com.cloudhopper</groupId>
-            <artifactId>a1s-ch-smpp</artifactId>
+            <artifactId>ch-smpp</artifactId>
             <version>${ch.smpp.version}</version>
         </dependency>
 

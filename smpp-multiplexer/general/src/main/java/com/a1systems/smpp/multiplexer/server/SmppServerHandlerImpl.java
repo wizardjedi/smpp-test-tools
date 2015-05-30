@@ -34,6 +34,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     protected SmppClient smppClient;
 
+    protected Application app;
+
     protected ExecutorService pool;
 
     protected ScheduledExecutorService asyncPool;
@@ -73,6 +75,14 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         
         metricsRegistry.register(MetricsHelper.JMX_GAUGE_FAILEDLOGINS_SIZE, new MapSizeGauge(failedLogins));
         metricsRegistry.register(MetricsHelper.JMX_GAUGE_HANDLERS_SIZE, new MapSizeGauge(handlers));
+    }
+
+    public Application getApp() {
+        return this.app;
+    }
+
+    public void setApp(Application app) {
+        this.app = app;
     }
 
     @Override

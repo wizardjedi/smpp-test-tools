@@ -278,7 +278,8 @@ public class Application {
         metricsRegistry.register(MetricsHelper.JMX_GAUGE_ACTIVE_POOL_SIZE, new PoolActiveSizeGauge((ThreadPoolExecutor) pool));
         
         serverHandler = new SmppServerHandlerImpl(clientGroup, pool, endPoints, asyncPool, monitorPool, metricsRegistry);
-        
+        serverHandler.setApp(this);
+
         server = new DefaultSmppServer(serverConfig, serverHandler, monitorPool, nioGroup, nioGroup);
 
         logger.info("Smpp server starting");
