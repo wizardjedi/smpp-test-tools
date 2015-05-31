@@ -193,19 +193,24 @@ public class Application {
 
         List<URL> jarsUrlsList = new ArrayList<URL>();
 
-        for (File file:pluginsDirectory.listFiles()) {
-            if (
-                file.canRead()
-                && file.isFile()
-                && file.canExecute()
-                && file.getName().endsWith(".jar")
-            ) {
-                try {
-                    jarsUrlsList.add(file.toURI().toURL());
+        if (
+            pluginsDirectory.exists()
+            && pluginsDirectory.canExecute()
+        ) {
+            for (File file:pluginsDirectory.listFiles()) {
+                if (
+                    file.canRead()
+                    && file.isFile()
+                    && file.canExecute()
+                    && file.getName().endsWith(".jar")
+                ) {
+                    try {
+                        jarsUrlsList.add(file.toURI().toURL());
 
-                    logger.info("Found plugin-jar:{}", file);
-                } catch (MalformedURLException ex) {
-                    logger.error("Malformed URL for file {}", file);
+                        logger.info("Found plugin-jar:{}", file);
+                    } catch (MalformedURLException ex) {
+                        logger.error("Malformed URL for file {}", file);
+                    }
                 }
             }
         }
