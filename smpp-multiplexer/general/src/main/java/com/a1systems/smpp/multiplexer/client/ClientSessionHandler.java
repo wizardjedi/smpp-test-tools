@@ -10,9 +10,11 @@ import com.cloudhopper.smpp.pdu.EnquireLink;
 import com.cloudhopper.smpp.pdu.EnquireLinkResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
+import com.cloudhopper.smpp.pdu.QuerySmResp;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import io.netty.channel.ConnectTimeoutException;
+import java.net.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +38,14 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
             PduRequest req = pduAsyncResponse.getRequest();
 
             serverHandler.processSubmitSmResp(req, (SubmitSmResp)response);
+
+            return ;
+        }
+        
+        if (response instanceof QuerySmResp) {
+            PduRequest req = pduAsyncResponse.getRequest();
+
+            serverHandler.processQuerySmResp(req, (QuerySmResp)response);
 
             return ;
         }
@@ -116,12 +126,21 @@ public class ClientSessionHandler extends DefaultSmppSessionHandler {
                         endpoint
                     );
             }
-            
-            
         } else {
-            super.fireUnknownThrowable(t);
+            if (t instanceof ConnectException) {
+                Application.ConnectionEndpoint endpoint = client.getEndpoint();
+                
+                logger
+                    .error(
+                        "{} Connection problem. Mark endpoint {} is unreachable.",
+                        client.toStringConnectionParams(),
+                        endpoint
+                    );
+                
+                endpoint.markUnreachable();
+            } else {
+                super.fireUnknownThrowable(t);
+            }
         }
     }
-    
-    
 }

@@ -7,6 +7,7 @@ import com.a1systems.smpp.multiplexer.client.ClientSessionHandler;
 import com.a1systems.smpp.multiplexer.client.RouteInfo;
 import com.cloudhopper.commons.gsm.GsmUtil;
 import com.cloudhopper.smpp.PduAsyncResponse;
+import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppServerSession;
 import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
@@ -18,6 +19,8 @@ import com.cloudhopper.smpp.pdu.EnquireLink;
 import com.cloudhopper.smpp.pdu.EnquireLinkResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
+import com.cloudhopper.smpp.pdu.QuerySm;
+import com.cloudhopper.smpp.pdu.QuerySmResp;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.pdu.Unbind;
@@ -34,6 +37,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -42,11 +46,17 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
+
+    /**
+     * Maximum timeout for binding all clients
+     */
+    public static final long MAX_CLIENT_BINDING_TIMEOUT = TimeUnit.SECONDS.toMillis(30);
 
     public static final Logger logger = LoggerFactory.getLogger(SmppServerSessionHandler.class);
 
@@ -55,10 +65,12 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     protected ThreadPoolExecutor pool;
 
     protected RateLimiter elinkLimiter = RateLimiter.create(1);
-    
+
     protected ScheduledExecutorService asyncPool;
 
     protected SmppServerHandlerImpl handler;
+
+    protected long clientsBindingTimeout = 0;
 
     protected List<Client> clients;
 
@@ -70,8 +82,13 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     protected ScheduledFuture<?> cleanUpFuture = null;
 
     protected CopyOnWriteArrayList<Client> aliveClients = new CopyOnWriteArrayList<Client>();
+
     private ScheduledFuture<?> elinkTaskFuture;
 
+    protected volatile long lastInputMillis;
+    
+    protected long elinkPeriod = 30;
+    
     public CopyOnWriteArrayList<Client> getAliveClients() {
         return aliveClients;
     }
@@ -79,11 +96,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     public void setAliveClients(CopyOnWriteArrayList<Client> aliveClients) {
         this.aliveClients = aliveClients;
     }
-    
+
     public SmppSession getSession() {
         return session;
     }
-    
+
     public List<Client> getClients() {
         return clients;
     }
@@ -107,10 +124,10 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         clients = new ArrayList<Client>();
 
         DateTime failLogin = handler.failedLogins.get(systemId+"/"+password);
-        
+
         if (failLogin != null && failLogin.plusMinutes(1).isAfterNow()) {
             logger.error("{} Login failed by time", sessionConfiguration.getName());
-            
+
             throw new MultiplexerBindException();
         }
 
@@ -141,6 +158,26 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         }
 
         for (Application.ConnectionEndpoint c : handler.endPoints) {
+            AtomicReference<DateTime> unreachableRef = c.getUnreachableSince();
+            
+            DateTime unreachableSince = unreachableRef.get();
+            
+            if (
+                unreachableSince != null 
+                && unreachableSince.plusSeconds(60).isAfterNow()
+            ) {
+                logger
+                    .error(
+                        "Enpoint:{} server session:{} with creds:{} / {} is unreachable", 
+                        c,
+                        sessionConfiguration.getName(),
+                        systemId,
+                        password
+                    );
+                
+                continue;
+            }
+            
             SmppSessionConfiguration cfg = new SmppSessionConfiguration();
             cfg.setHost(c.getHost());
             cfg.setPort(c.getPort());
@@ -191,16 +228,16 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             } while ((!binded) && ((System.currentTimeMillis() - start) < 11000));
 
             if (binded) {
-                cleanUpFuture = 
+                cleanUpFuture =
                     this
                         .asyncPool
                         .scheduleAtFixedRate(
                             new CleanupTask(
-                                msgMap, 
+                                msgMap,
                                 sessionConfiguration.getName()
-                            ), 
-                            60, 
-                            60, 
+                            ),
+                            60,
+                            60,
                             TimeUnit.SECONDS
                         );
 
@@ -208,7 +245,14 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             } else {
                 logger.error("{} Timeout", sessionConfiguration.getName());
 
-                handler.failedLogins.put(systemId+"/"+password, DateTime.now());
+                String failedLoginId = systemId+"/"+password;
+                
+                if (
+                    !handler.failedLogins.containsKey(failedLoginId)
+                    || handler.failedLogins.get(failedLoginId).plusMinutes(1).isBeforeNow()
+                ) {
+                    handler.failedLogins.put(failedLoginId, DateTime.now());
+                }
                 
                 for (Client client : clients) {
                     client.stop();
@@ -225,11 +269,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     public PduResponse firePduRequestReceived(PduRequest pduRequest) {
 
         if (pduRequest instanceof Unbind) {
-            
+
             Unbind unbind = (Unbind) pduRequest;
-            
+
             logger.info("{} Got unbind:{}", session.getConfiguration().getName(), unbind);
-            
+
             try {
                 getSession().sendResponsePdu(unbind.createResponse());
             } catch (RecoverablePduException ex) {
@@ -241,29 +285,33 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             } catch (InterruptedException ex) {
                 logger.error("{}", ex);
             }
-            
+
             session.destroy();
             session.close();
         }
-        
+
         if (pduRequest instanceof EnquireLink) {
             if (!elinkLimiter.tryAcquire()) {
                 logger.error("{} Too much elinks. Close channel.", session.getConfiguration().getName());
-                
+
                 session.destroy();
                 session.close();
-                
+
                 return null;
             } else {
                 logger.info("{} Got elink response with elink_resp", session.getConfiguration().getName());
-            
+
                 return pduRequest.createResponse();
             }
         }
 
+        if (pduRequest instanceof QuerySm) {
+            return processQuerySm((QuerySm)pduRequest);
+        }
+        
         if (pduRequest instanceof SubmitSm) {
             MetricRegistry metricsRegistry = handler.getMetricsRegistry();
-            
+
             metricsRegistry.meter(session.getConfiguration().getName() + "_ssm").mark();
             metricsRegistry.meter("total_ssm").mark();
 
@@ -279,7 +327,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         if (pduResponse instanceof DeliverSmResp) {
             MetricRegistry metricsRegistry = handler.getMetricsRegistry();
-            
+
             metricsRegistry.meter(session.getConfiguration().getName() + "_dsm").mark();
             metricsRegistry.meter("total_dsm").mark();
 
@@ -289,11 +337,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
             processDeliverSmResp((DeliverSmResp) pduResponse);
         }
-        
+
         if (pduResponse instanceof EnquireLinkResp) {
             logger
                 .info(
-                    "{} elink success", 
+                    "{} elink success",
                     getSession().getConfiguration().getName()
                 );
         }
@@ -302,12 +350,12 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     @Override
     public void fireChannelUnexpectedlyClosed() {
         logger.info("Channel unexpectedly closed {}", session.getConfiguration().getName());
-        
+
         try {
             SmppServerSession serverSession = (SmppServerSession) session;
 
             if (
-                elinkTaskFuture != null 
+                elinkTaskFuture != null
                 && !elinkTaskFuture.isCancelled()
             ) {
                 elinkTaskFuture.cancel(true);
@@ -323,7 +371,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 for (Client client : clients) {
                     client.stop();
                 }
-                
+
                 clients.clear();
                 clients = null;
             }
@@ -332,7 +380,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 aliveClients.clear();
                 aliveClients = null;
             }
-            
+
             if (
                 handler !=null
                 && handler.getMetricsRegistry() != null
@@ -342,12 +390,12 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_ssmr");
                 handler.getMetricsRegistry().remove(session.getConfiguration().getName() + "_dsmr");
             }
-            
+
             if (msgMap != null) {
                 msgMap.clear();
                 msgMap = null;
             }
-            
+
             if (cleanUpFuture != null) {
                 cleanUpFuture.cancel(true);
             }
@@ -357,7 +405,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 serverSession.close();
                 serverSession = null;
             }
-            
+
             logger.info("Firechannel closed completed");
         } catch (Exception e) {
             logger.error("Exception in channel closed handler", e);
@@ -365,7 +413,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
     }
 
     @Override
-    public void firePduRequestExpired(PduRequest pduRequest) {   
+    public void firePduRequestExpired(PduRequest pduRequest) {
         logger
             .error(
                 "{} expired pdu.type:{} pdu.seq_num:{}",
@@ -373,15 +421,15 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 pduRequest.getClass().toString(),
                 pduRequest.getSequenceNumber()
             );
-        
+
         if (pduRequest instanceof EnquireLink) {
             logger
                 .error(
-                    "{} enquire link expired. Close server session.", 
+                    "{} enquire link expired. Close server session.",
                     ((SmppSession)session).getConfiguration().getName()
                 );
-            
-            session.destroy(); 
+
+            session.destroy();
             session.close();
         }
     }
@@ -390,29 +438,51 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         SmppServerSession serverSession = (SmppServerSession) session;
 
         DefaultSmppSession defaultSmppSession = (DefaultSmppSession) session;
-        
+
         InetSocketAddress remoteAddress = (InetSocketAddress)defaultSmppSession.getChannel().remoteAddress();
         InetSocketAddress localAddress = (InetSocketAddress)defaultSmppSession.getChannel().localAddress();
+
+        this.lastInputMillis = System.currentTimeMillis();
         
-        String adrInfo = 
+        String adrInfo =
             remoteAddress.getHostString()
                 + ":"
                 + remoteAddress.getPort();
-        
+
         try {
             ssm.setOptionalParameter(TlvUtil.createNullTerminatedStringTlv((byte)0x4123, adrInfo));
-            
+
             ssm.calculateAndSetCommandLength();
         } catch (TlvConvertException ex) {
             logger.error("Can't pack TLV:{}", adrInfo);
         }
-        
-        
+
         if (aliveClients.size() > 0) {
-            long id = Math.abs(index.incrementAndGet()) % aliveClients.size();
+            long incrementedIndex = index.incrementAndGet();
+            
+            long totalWeight = 0;
+            
+            for (Client c:aliveClients) {
+                totalWeight += c.getEndpoint().getWeight();
+            }
+            
+            long modulus = Math.abs(incrementedIndex) % totalWeight;
 
-            Client c = aliveClients.get((int) id);
+            long clientTotalWeight = 0;
+            
+            Client c = aliveClients.get(0);
+            
+            for (Client client:aliveClients) {
+                if (
+                    modulus >= clientTotalWeight 
+                    && modulus < clientTotalWeight + client.getEndpoint().getWeight()
+                ) {
+                    c = client;
+                }
 
+                clientTotalWeight += client.getEndpoint().getWeight();
+            }
+            
             RouteInfo ri = new RouteInfo();
 
             ri.setInputSequenceNumber(ssm.getSequenceNumber());
@@ -476,11 +546,93 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
             ssm.removeSequenceNumber();
 
             MetricRegistry registry = handler.getMetricsRegistry();
-            
+
             pool.submit(new OutputSender(c, (SmppServerSession) session, ssm, System.currentTimeMillis(), registry));
-            
+
             MetricsHelper.poolQueueSize(registry, pool.getQueue().size());
         }
+    }    
+    
+    public PduResponse processQuerySm(QuerySm qsm) {
+        SmppServerSession serverSession = (SmppServerSession) session;
+
+        DefaultSmppSession defaultSmppSession = (DefaultSmppSession) session;
+
+        InetSocketAddress remoteAddress = (InetSocketAddress)defaultSmppSession.getChannel().remoteAddress();
+        InetSocketAddress localAddress = (InetSocketAddress)defaultSmppSession.getChannel().localAddress();
+
+        this.lastInputMillis = System.currentTimeMillis();
+        
+        String adrInfo =
+            remoteAddress.getHostString()
+                + ":"
+                + remoteAddress.getPort();
+
+        try {
+            qsm.setOptionalParameter(TlvUtil.createNullTerminatedStringTlv((byte)0x4123, adrInfo));
+
+            qsm.calculateAndSetCommandLength();
+        } catch (TlvConvertException ex) {
+            logger.error("Can't pack TLV:{}", adrInfo);
+        }
+
+        if (aliveClients.size() > 0) {
+            String messageId = qsm.getMessageId();
+            
+            for (Client c:aliveClients) {
+                if (messageId.endsWith(c.getEndpoint().getNodeId())) {
+                    if (c.isBound()) {
+                        try {
+                            RouteInfo ri = new RouteInfo();
+
+                            ri.setInputSequenceNumber(qsm.getSequenceNumber());
+                            ri.setCreateDate(DateTime.now());
+                            ri.setClient(c);
+                            
+                            qsm.setReferenceObject(ri);
+                            
+                            qsm.removeSequenceNumber();
+                            
+                            logger
+                                .info(
+                                        "sess.name:{} got qsm.seq_num:{} qsm.msg_id:{} -> {} ssm.seq_num:{} [{}]",
+                                        serverSession.getConfiguration().getName(),
+                                        qsm.getSequenceNumber(),
+                                        qsm.getMessageId(),
+                                        c.toStringShortConnectionParams(),
+                                        ((DefaultSmppSession) c.getSession()).getSequenceNumber().peek(),
+                                        adrInfo
+                                );
+                            
+                            MetricRegistry registry = handler.getMetricsRegistry();            
+                                        
+                            pool
+                                .submit(
+                                        new OutputSender(
+                                            c, 
+                                            (SmppServerSession) session, 
+                                            qsm, 
+                                            System.currentTimeMillis(), 
+                                            registry
+                                        )
+                                );
+                            
+                            MetricsHelper.poolQueueSize(registry, pool.getQueue().size());
+                            
+                            return null;
+                        } catch (Exception ex) {
+                            logger.error("Error processing query_sm", ex);
+                        }
+                    }
+                }
+            }
+        }
+        
+        QuerySmResp resp = qsm.createResponse();
+
+        resp.setErrorCode((byte)SmppConstants.STATUS_SYSERR);
+
+        return resp;
     }
 
     public void processSubmitSmResp(PduRequest req, SubmitSmResp submitSmResp) {
@@ -506,11 +658,11 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         MetricRegistry metricsRegistry = handler.getMetricsRegistry();
         metricsRegistry.meter(session.getConfiguration().getName() + "_ssmr").mark();
         metricsRegistry.meter("total_ssmr").mark();
-        
+
         pool.submit(new InputSender(serverSession, submitSmResp, System.currentTimeMillis(), metricsRegistry));
-        
+
         int size = pool.getQueue().size();
-        
+
         MetricsHelper.poolQueueSize(metricsRegistry, pool.getQueue().size());
     }
 
@@ -519,9 +671,12 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
         RouteInfo ri = (RouteInfo) deliverSm.getReferenceObject();
 
+        UUID uid = UUID.randomUUID();
+        
         logger
                 .info(
-                        "{} dsm.seq_num:{} dsm.dest:{} dsm.src:{} -> {}",
+                        "uid:{} {} dsm.seq_num:{} dsm.dest:{} dsm.src:{} -> {}",
+                        uid,
                         ri.getClient().toStringShortConnectionParams(),
                         deliverSm.getSequenceNumber(),
                         deliverSm.getDestAddress().getAddress(),
@@ -532,17 +687,19 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
         deliverSm.removeSequenceNumber();
 
         MetricRegistry metricsRegistry = handler.getMetricsRegistry();
-        
-        pool.submit(new InputSender((SmppServerSession) session, deliverSm, System.currentTimeMillis(), metricsRegistry));
-        
+
+        pool.submit(new InputSender(uid, (SmppServerSession) session, deliverSm, System.currentTimeMillis(), metricsRegistry));
+
         int size = pool.getQueue().size();
-        
+
         MetricsHelper.poolQueueSize(metricsRegistry, size);
     }
 
     public void processDeliverSmResp(DeliverSmResp deliverSmResp) {
         MetricRegistry metricsRegistry = handler.getMetricsRegistry();
-            
+
+        this.lastInputMillis = System.currentTimeMillis();
+        
         metricsRegistry.meter(session.getConfiguration().getName() + "_dsmr").mark();
         metricsRegistry.meter("total_dsmr").mark();
 
@@ -567,19 +724,35 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 );
 
         pool.submit(new OutputSender(c, serverSession, deliverSmResp, System.currentTimeMillis(), metricsRegistry));
-        
+
         MetricsHelper.poolQueueSize(metricsRegistry, pool.getQueue().size());
     }
 
     public void clientBinding(Client client) {
-        if (!client.isHidden()) {
+        if (!client.isHidden() && aliveClients.contains(client)) {
             aliveClients.remove(client);
+        }
+
+        if (clientsBindingTimeout == 0) {
+            clientsBindingTimeout = System.currentTimeMillis();
+        }
+
+        if (
+            System.currentTimeMillis() - clientsBindingTimeout > MAX_CLIENT_BINDING_TIMEOUT
+            && aliveClients.isEmpty()
+        ) {
+            logger.error("No clients. Destroy session.");
+
+            session.destroy();
+            session.close();
         }
     }
 
     public void clientBound(Client client) {
         if (!client.isHidden()) {
             aliveClients.add(client);
+
+            clientsBindingTimeout = 0;
         }
     }
 
@@ -601,14 +774,66 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
 
     public void useServerSession(SmppServerSession session) {
         this.session = session;
-        
+
         for (Client client : clients) {
             client.setServerSession((SmppServerSession) session);
         }
     }
 
     public void startElinkTask(SmppServerSessionHandler smppServerSessionHandler) {
-        elinkTaskFuture = asyncPool.scheduleAtFixedRate(new ServerElinkTask(smppServerSessionHandler), 30, 30, TimeUnit.SECONDS);
+        elinkTaskFuture = 
+                asyncPool
+                    .scheduleAtFixedRate(
+                        new ServerElinkTask(smppServerSessionHandler), 
+                        getElinkPeriod(), 
+                        getElinkPeriod(), 
+                        TimeUnit.SECONDS
+                    );
     }
 
+    public long getLastInputMillis() {
+        return lastInputMillis;
+    }
+
+    public void setLastInputMillis(long lastInputMillis) {
+        this.lastInputMillis = lastInputMillis;
+    }
+
+    public long getElinkPeriod() {
+        return elinkPeriod;
+    }
+
+    public void setElinkPeriod(long elinkPeriod) {
+        this.elinkPeriod = elinkPeriod;
+    }
+
+    public void processQuerySmResp(PduRequest req, QuerySmResp querySmResp) {
+        RouteInfo ri = (RouteInfo) req.getReferenceObject();
+
+        int sequenceNumber = querySmResp.getSequenceNumber();
+
+        querySmResp.setSequenceNumber((int) ri.getInputSequenceNumber());        
+
+        SmppServerSession serverSession = (SmppServerSession) session;
+
+        logger
+            .info(
+                "{} qsmr.seq_num:{} status:{} msg_id:{} msg.state:{} -> {} qsmr.seq_num:{}",
+                ri.getClient().toStringConnectionParams(),
+                sequenceNumber,
+                querySmResp.getCommandStatus(),
+                querySmResp.getMessageId(),
+                querySmResp.getMessageState(),
+                serverSession.getConfiguration().getName(),
+                querySmResp.getSequenceNumber()
+            );
+        
+        MetricRegistry metricsRegistry = handler.getMetricsRegistry();
+
+        pool.submit(new InputSender(serverSession, querySmResp, System.currentTimeMillis(), metricsRegistry));
+
+        int size = pool.getQueue().size();
+
+        MetricsHelper.poolQueueSize(metricsRegistry, pool.getQueue().size());
+    }
 }

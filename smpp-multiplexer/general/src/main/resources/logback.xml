@@ -22,7 +22,7 @@
 
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{YYYYMMddHHmmss} %thread %msg%n</pattern>
+            <pattern>%date{YYYYMMddHHmmss} %thread %logger %msg%n</pattern>
         </encoder>
     </appender>
 

@@ -9,6 +9,9 @@ import com.cloudhopper.smpp.SmppServerConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppServer;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.codahale.metrics.MetricRegistry;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.nio.NioEventLoopGroup;
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,6 +30,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import java.util.concurrent.atomic.AtomicReference;
 import org.joda.time.DateTime;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -47,11 +52,23 @@ public class Application {
     protected ServiceLoader<Authorizer> authorizers;
 
     public static class ConnectionEndpoint {
-
+        @JsonProperty(value = "nodeId")
+        protected String nodeId;
+        
+        @JsonProperty(value = "host")
         protected String host;
+        
+        @JsonProperty(value = "port")
         protected int port;
+        
+        @JsonProperty(value = "hidden")
         protected boolean hidden = false;
+        
         protected volatile DateTime lastFailedConnection = null;
+        
+        @JsonProperty(value = "weight")
+        protected int weight = 1;
+        protected AtomicReference<DateTime> unreachableSince = new AtomicReference<DateTime>();
         
         public static ConnectionEndpoint create(String host, int port, boolean hidden) {
             ConnectionEndpoint c = new ConnectionEndpoint();
@@ -59,8 +76,40 @@ public class Application {
             c.setHost(host);
             c.setPort(port);
             c.setHidden(hidden);
-
+            c.setWeight(1);
+            
             return c;
+        }
+        
+        public static ConnectionEndpoint create(String host, int port, boolean hidden, int weight) {
+            ConnectionEndpoint c = new ConnectionEndpoint();
+
+            c.setHost(host);
+            c.setPort(port);
+            c.setHidden(hidden);
+            c.setWeight(weight);
+            
+            return c;
+        }
+
+        public AtomicReference<DateTime> getUnreachableSince() {
+            return unreachableSince;
+        }
+
+        public String getNodeId() {
+            return nodeId;
+        }
+
+        public void setNodeId(String nodeId) {
+            this.nodeId = nodeId;
+        }
+        
+        public int getWeight() {
+            return weight;
+        }
+
+        public void setWeight(int weight) {
+            this.weight = weight;
         }
 
         public void markLastFailedConnection() {
@@ -101,7 +150,20 @@ public class Application {
 
         @Override
         public String toString() {
-            return "ConnectionEndpoint{" + "host=" + host + ", port=" + port + ", hidden=" + hidden + ", lastFailedConnection=" + lastFailedConnection + '}';
+            return 
+                    "ConnectionEndpoint{" + 
+                        "nodeId=" + nodeId + 
+                        ", host=" + host + 
+                        ", port=" + port + 
+                        ", hidden=" + hidden + 
+                        ", lastFailedConnection=" + lastFailedConnection + 
+                        ", weight=" + weight + 
+                        ", unreachableSince=" + unreachableSince 
+                    + '}';
+        }        
+
+        public void markUnreachable() {
+            this.unreachableSince.set(DateTime.now());
         }
     }
 
@@ -163,30 +225,9 @@ public class Application {
         this.nioGroup = nioGroup;
     }
     
-    public void run(CliConfig config) throws SmppChannelException {
-        String applicationVersion = "undefined";
-
-        try {
-            Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
-            while (resources.hasMoreElements()) {
-                URL elem = resources.nextElement();
-
-                Manifest manifest = new Manifest(elem.openStream());
-
-                Attributes attrs = manifest.getMainAttributes();
-
-                if (
-                    attrs.getValue("Implementation-Build") != null
-                    && attrs.getValue("Main-Class").equals("com.a1systems.smpp.multiplexer.App")
-                ) {
-                    applicationVersion = attrs.getValue("Implementation-Build");
-                    break;
-                };
-            }
-        } catch (IOException e) {
-            logger.error("Couldnot open manifest");
-        }
-
+    public void run(CliConfig config) throws SmppChannelException, IOException {
+        String applicationVersion = this.getClass().getPackage().getImplementationVersion();
+        
         logger.info("\n\nApplication version:{} starting\n\n", applicationVersion);
 
         File pluginsDirectory = new File("plugins");
@@ -237,36 +278,85 @@ public class Application {
         SmppServerConfiguration serverConfig = new SmppServerConfiguration();
         serverConfig.setPort(config.getPort());
         serverConfig.setNonBlockingSocketsEnabled(true);
-        serverConfig.setBindTimeout(TimeUnit.SECONDS.toMillis(20));
+        serverConfig.setBindTimeout(TimeUnit.SECONDS.toMillis(5));
         
         List<ConnectionEndpoint> endPoints = new ArrayList<ConnectionEndpoint>();
 
-        String[] configEndPoints = config.getEndPoints().split(",");
+        if (config.getSettingFile() != null && !"".equals(config.getSettingFile().trim())) {
+            File settings = new File(config.getSettingFile().trim());
+            
+            ObjectMapper objectMapper = new ObjectMapper();
+            
+            endPoints = 
+                    (List<ConnectionEndpoint>)objectMapper
+                            .readValue(
+                                    settings, 
+                                    objectMapper
+                                            .getTypeFactory()
+                                            .constructCollectionType(
+                                                    List.class, 
+                                                    ConnectionEndpoint.class
+                                            )
+                            );
+            
+            logger.info("Use end points:{}", endPoints);
+        } else {
+            String[] configEndPoints = config.getEndPoints().split(",");
 
-        for (String endPoint : configEndPoints) {
-            String[] parts = endPoint.split(":");
+            for (String endPoint : configEndPoints) {
+                String[] parts = endPoint.split(":");
 
-            ConnectionEndpoint c;
+                ConnectionEndpoint c;
 
-            if (parts.length == 3
-                    && parts[0].toLowerCase().equals("h")) {
-                c = ConnectionEndpoint.create(parts[1], Integer.parseInt(parts[2]), true);
-            } else {
-                c = ConnectionEndpoint.create(parts[0], Integer.parseInt(parts[1]), false);
+                if (!(parts.length == 2 || parts.length == 3 || parts.length == 4)) {
+                    throw new RuntimeException("Strange endpoints");
+                }
+
+                boolean isHidden = false;
+
+                String host;
+                int port;
+                int weight = 1;
+
+                if (
+                    parts[0].trim().toLowerCase().equals("h")
+                    && (
+                        parts.length == 3
+                        || parts.length == 4
+                    )
+                ) {
+                    isHidden = true;
+
+                    host = parts[1];
+                    port = Integer.parseInt(parts[2]);
+                } else {
+                    host = parts[0];
+                    port = Integer.parseInt(parts[1]);
+                }
+
+                if (parts.length == 4) {
+                    weight = Integer.parseInt(parts[3]);
+                } else {
+                    if (parts.length == 3 && !isHidden) {
+                        weight = Integer.parseInt(parts[2]);
+                    }
+                }
+
+                c = ConnectionEndpoint.create(host, port, isHidden, weight);
+
+                logger.info("Use end point:{}", c);
+
+                endPoints.add(c);
             }
-
-            logger.info("Use end point:{}", c);
-
-            endPoints.add(c);
         }
 
         serverConfig.setSystemId("SMPP-MUX");
 
-        serverConfig.setMaxConnectionSize(300);
+        serverConfig.setMaxConnectionSize(500);
         // don't set big values
         serverConfig.setDefaultWindowSize(2500);
         serverConfig.setDefaultRequestExpiryTimeout(TimeUnit.SECONDS.toMillis(60));
-        serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(15));
+        serverConfig.setDefaultWindowMonitorInterval(TimeUnit.SECONDS.toMillis(15));        
         
         nioGroup = new NioEventLoopGroup();
         clientGroup = new NioEventLoopGroup();

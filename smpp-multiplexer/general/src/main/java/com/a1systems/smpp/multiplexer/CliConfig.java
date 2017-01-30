@@ -9,6 +9,17 @@ public class CliConfig {
     @Option(name = "-e", usage = "Endpoints to proxy client requests (host1:port1,host2:port2,...)")
     protected String endPoints;
 
+    @Option(name = "-f", usage = "")
+    protected String settingFile = "Path to JSON settings file";
+
+    public String getSettingFile() {
+        return settingFile;
+    }
+
+    public void setSettingFile(String settingFile) {
+        this.settingFile = settingFile;
+    }
+    
     public Integer getPort() {
         return port;
     }

@@ -8,6 +8,7 @@ import com.codahale.metrics.MetricRegistry;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,8 @@ class InputSender implements Runnable {
     protected Pdu pdu;
     protected long processingStartMillis;
     protected MetricRegistry registry;
-
+    protected UUID processingUid;
+    
     public static org.slf4j.Logger logger = LoggerFactory.getLogger(InputSender.class);
 
     public InputSender(SmppServerSession session, Pdu pdu, long start, MetricRegistry registry) {
@@ -25,6 +27,15 @@ class InputSender implements Runnable {
         this.pdu = pdu;
         this.processingStartMillis = start;
         this.registry = registry;
+        this.processingUid = UUID.randomUUID();
+    }
+    
+    public InputSender(UUID uid, SmppServerSession session, Pdu pdu, long start, MetricRegistry registry) {
+        this.serverSession = session;
+        this.pdu = pdu;
+        this.processingStartMillis = start;
+        this.registry = registry;
+        this.processingUid = uid;
     }
 
     @Override
@@ -50,7 +61,8 @@ class InputSender implements Runnable {
                         } else {
                             logger
                                 .info(
-                                    "Window full for {} discard input pdu.seq_num:{} type:{}",
+                                    "uid:{} Window full for {} discard input pdu.seq_num:{} type:{}",
+                                    processingUid,
                                     serverSession.getConfiguration().getName(),
                                     pdu.getSequenceNumber(),
                                     (pdu.isRequest() ? "req" : "resp")
@@ -62,7 +74,8 @@ class InputSender implements Runnable {
 
                     logger
                         .info(
-                            "Processed {} input pdu.seq_num:{} type:{} processing took:{}",
+                            "uid:{} Processed {} input pdu.seq_num:{} type:{} processing took:{}",
+                            processingUid,
                             serverSession.getConfiguration().getName(),
                             pdu.getSequenceNumber(),
                             (pdu.isRequest() ? "req" : "resp"),
@@ -71,7 +84,8 @@ class InputSender implements Runnable {
                 } else {
                     logger
                         .error(
-                            "Session:{} Input sender error. Server session is null. Could not send pdu.seq_num:{}",
+                            "uid:{} Session:{} Input sender error. Server session is null. Could not send pdu.seq_num:{}",
+                            processingUid,
                             serverSession.getConfiguration().getName(),
                             pdu.getSequenceNumber()
                         );
@@ -79,27 +93,26 @@ class InputSender implements Runnable {
                     MetricsHelper.inputSenderNoSession(registry);
                 }
             } catch (Exception ex) {
-                StringWriter sw = new StringWriter();
-
-                PrintWriter pw = new PrintWriter(sw, true);
-
-                ex.printStackTrace(pw);
-
-                logger.error("inputsender.error pdu:{} {} {} {}", pdu, ex.getMessage(), ex.getCause(), sw.toString());
-
-                pw.close();
-                try {
-                    sw.close();
-                } catch (IOException e) {
-                    logger.error("IOException on get stack trace");
-                }
+                logger
+                    .error(
+                        String
+                            .format(
+                                "uid:%s session:%s input sender exception pdu:%s msg:%s cause:%s", 
+                                processingUid.toString(),
+                                serverSession != null ? serverSession.getConfiguration().getName() : null,
+                                pdu.toString(),
+                                ex.getMessage(),
+                                ex.getCause()
+                            ), 
+                            ex);
                 
                 MetricsHelper.inputSenderException(registry);
             }
         } else {
             logger
                 .error(
-                    "inputsender {} processing took too long:{} to process pdu.seq_num:{}",
+                    "uid:{} inputsender {} processing took too long:{} to process pdu.seq_num:{}",
+                    processingUid,
                     serverSession.getConfiguration().getName(),
                     curMillis - processingStartMillis,
                     pdu.getSequenceNumber()

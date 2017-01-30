@@ -48,6 +48,4 @@ class CleanupTask implements Runnable {
         
         logger.info("Clean up task completed for:{}", sessionName);
     }
-
-
 }

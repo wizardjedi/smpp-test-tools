@@ -13,7 +13,13 @@ public class App {
         try {
             parser.parseArgument(args);
 
-            if (cfg.getPort() == null || cfg.getEndPoints() == null) {
+            if (
+                cfg.getPort() == null 
+                || (
+                    cfg.getEndPoints() == null
+                    && cfg.getSettingFile() == null
+                )
+            ) {
                 printUsageAndExit(parser);
             }
         } catch (CmdLineException e) {
@@ -27,7 +33,7 @@ public class App {
 
     public static void printUsageAndExit(CmdLineParser parser) {
         System.out.println("SMPP multiplexer.");
-        System.out.println("Example: smppmultiplexer -p 3712 -e '127.0.0.1:2775,h:127.0.0.1:2776'");
+        System.out.println("Example: smppmultiplexer -p 3712 -e '127.0.0.1:2775,h:127.0.0.1:2776,127.0.0.1:2777:3'");
         System.out.println("\tStart smpp multiplexer on port 3712. Use connections to 127.0.0.1:2775 and 127.0.0.1:2776."
                 + " 127.0.0.1:2776 - hidden connection (No submit_sm will route to it, but deliver_sm will route back).");
         

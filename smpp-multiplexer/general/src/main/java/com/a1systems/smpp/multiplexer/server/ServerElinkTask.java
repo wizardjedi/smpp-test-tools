@@ -36,7 +36,11 @@ public class ServerElinkTask implements Runnable {
                 session!=null 
                 && session.isBound()
             ) {
-                session.sendRequestPdu(new EnquireLink(), TimeUnit.SECONDS.toMillis(10), false);
+                if (
+                    System.currentTimeMillis() - smppServerSessionHandler.getLastInputMillis() > TimeUnit.SECONDS.toMillis(smppServerSessionHandler.getElinkPeriod())
+                ) {
+                    session.sendRequestPdu(new EnquireLink(), TimeUnit.SECONDS.toMillis(10), false);
+                }
             } else {
                 log.error("No session for {}", sessionName);
             }

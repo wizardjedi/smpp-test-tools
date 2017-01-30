@@ -26,6 +26,8 @@ public class RebindTask implements Runnable {
     public void run() {
         if (client.isBinding()) {
             
+            client.onBindEvent();
+            
             Application.ConnectionEndpoint endpoint = client.getEndpoint();
             
             if (
@@ -51,11 +53,11 @@ public class RebindTask implements Runnable {
 
                 client.bound(session);
             } catch (SmppTimeoutException ex) {
-                log.error("SmppTimeoutException {} {}", client.getName(), ex.getMessage());
+                log.error(String.format("SmppTimeoutException %s %s", client.getName(), ex.getMessage()), ex);
                              
                 closeSession(session);
             } catch (SmppChannelException ex) {
-                log.error("SmppChannelException {} {}", client.getName(), ex.getMessage());
+                log.error(String.format("SmppChannelException %s %s", client.getName(), ex.getMessage()), ex);
                 
                 Throwable cause = ex.getCause();
                 
@@ -67,15 +69,15 @@ public class RebindTask implements Runnable {
                 
                 closeSession(session);
             } catch (SmppBindException ex) {
-                log.error("SmppBindException {} {}", client.getName(), ex.getMessage());
-
+                log.error(String.format("SmppBindException %s %s", client.getName(), ex.getMessage()),ex);
+                
                 closeSession(session);
             } catch (UnrecoverablePduException ex) {
-                log.error("UnrecoverablePduException {} {}", client.getName(), ex.getMessage());
+                log.error(String.format("UnrecoverablePduException %s %s", client.getName(), ex.getMessage()), ex);
                 
                 closeSession(session);
             } catch (InterruptedException ex) {
-                log.error("InterruptedException {} {}", client.getName(), ex.getMessage());
+                log.error(String.format("InterruptedException %s %s", client.getName(), ex.getMessage()), ex);
                 
                 closeSession(session);
             }

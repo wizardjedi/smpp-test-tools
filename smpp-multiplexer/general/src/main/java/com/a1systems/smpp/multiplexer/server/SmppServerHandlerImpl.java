@@ -1,10 +1,12 @@
 package com.a1systems.smpp.multiplexer.server;
 
 import com.a1systems.smpp.multiplexer.Application;
+import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppClient;
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppServerHandler;
 import com.cloudhopper.smpp.SmppServerSession;
+import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.impl.DefaultSmppSession;
@@ -32,6 +34,8 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
     public static final Logger logger = LoggerFactory.getLogger(SmppServerHandlerImpl.class);
 
+    public static final int WRITE_TIME_OUT_SECONDS = 10;
+    
     protected SmppClient smppClient;
 
     protected Application app;
@@ -71,7 +75,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
         this.endPoints = endPoints;
         
-        asyncPool.scheduleWithFixedDelay(new CleanupFailedLogins(failedLogins), 10, 10, TimeUnit.MINUTES);
+        asyncPool.scheduleWithFixedDelay(new CleanupFailedLogins(failedLogins), 1, 1, TimeUnit.MINUTES);
         
         metricsRegistry.register(MetricsHelper.JMX_GAUGE_FAILEDLOGINS_SIZE, new MapSizeGauge(failedLogins));
         metricsRegistry.register(MetricsHelper.JMX_GAUGE_HANDLERS_SIZE, new MapSizeGauge(handlers));
@@ -92,7 +96,30 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
         String sessionName = systemId + "_" + password + "_" + sessionId;
         
+        String sessionQualifier = systemId + "_" + password + "_";
+        
+        for (SmppServerSessionHandler handler:handlers.values()) {
+            SmppSession session = handler.getSession();
+            
+            if (
+                session != null
+                && handler.getSession() != null                
+                && session.getConfiguration() != null
+                && session.getConfiguration().getName().startsWith(sessionQualifier)
+                && isSessionBound(sessionConfiguration.getType(), handler.getSession().getBindType())
+            ) {
+                logger.debug("{} Session already bound for {}:{}", sessionName, systemId, password);
+
+                throw new SmppProcessingException(
+                    SmppConstants.STATUS_ALYBND, 
+                    "Already bound. Only 1 session allowed."
+                );
+            }
+        }
+        
         sessionConfiguration.setName(sessionName);
+        
+        sessionConfiguration.setWriteTimeout(TimeUnit.SECONDS.toMillis(WRITE_TIME_OUT_SECONDS));
         
         logger.debug("{} Bind request with {}:{}", sessionName, systemId, password);
 
@@ -103,13 +130,13 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
             
             MetricsHelper.successLogins(metricsRegistry);
         } catch (MultiplexerBindException e) {
-            logger.error("{} Multiplexer bind exception", sessionName);
+            logger.error(String.format("%s Multiplexer bind exception", sessionName), e);
             
             MetricsHelper.failedLogins(metricsRegistry);
             
             throw new SmppProcessingException(SmppConstants.STATUS_BINDFAIL);
         } catch (Exception e) {
-            logger.error("{} Exception while bind request {}", sessionName, e);
+            logger.error(String.format("%s Exception while bind request {}", sessionName), e);
             
             MetricsHelper.failedLogins(metricsRegistry);
             
@@ -130,7 +157,7 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
 
         session.getConfiguration().setLoggingOptions(lo);
 
-        session.getConfiguration().setWriteTimeout(TimeUnit.MILLISECONDS.toMillis(200));
+        session.getConfiguration().setWriteTimeout(TimeUnit.SECONDS.toMillis(WRITE_TIME_OUT_SECONDS));
 
         SmppServerSessionHandler smppServerSessionHandler = handlers.get(sessionId);
 
@@ -180,6 +207,13 @@ public class SmppServerHandlerImpl implements SmppServerHandler {
         logger.info("Destroy channel completed for {}", session.getConfiguration().getName());
     }
 
+    public boolean isSessionBound(SmppBindType newSessionBindtype, SmppBindType existedSessionBindType) {
+        return
+                existedSessionBindType == SmppBindType.TRANSCEIVER
+                || newSessionBindtype == SmppBindType.TRANSCEIVER
+                || newSessionBindtype == existedSessionBindType;
+    }
+    
     public SmppClient getSmppClient() {
         return this.smppClient;
     }

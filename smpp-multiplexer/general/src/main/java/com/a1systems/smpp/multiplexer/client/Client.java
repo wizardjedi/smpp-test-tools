@@ -150,6 +150,19 @@ public class Client {
         }
     }
 
+    /**
+     * Fired on processing BIND event
+     */
+    public void onBindEvent() {
+        log.debug("{} Fired onBindEvent()", toStringConnectionParams());
+        
+        if (this.state == ClientState.BINDING) {
+            if (serverSessionHandler != null) {
+                serverSessionHandler.clientBinding(this);
+            }
+        }
+    }
+    
     public void bound(SmppSession session) {
         if (this.state == ClientState.BINDING) {
             log.debug("{} {} Bound state", getName(), toStringConnectionParams());
