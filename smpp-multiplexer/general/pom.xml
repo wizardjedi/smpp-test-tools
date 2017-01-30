@@ -30,7 +30,7 @@
 
         <junit.version>4.11</junit.version>
 
-        <ch.smpp.version>[5.0.0,)</ch.smpp.version>
+        <ch.smpp.version>6.0.0-netty4-beta-3</ch.smpp.version>
         <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
         <ch.commons.charset.version>3.0.2</ch.commons.charset.version>
 
@@ -102,7 +102,7 @@
         </dependency-->
 
         <dependency>
-            <groupId>com.cloudhopper</groupId>
+            <groupId>com.fizzed</groupId>
             <artifactId>ch-smpp</artifactId>
             <version>${ch.smpp.version}</version>
         </dependency>
@@ -204,7 +204,7 @@
                             <mainClass>com.a1systems.smpp.multiplexer.App</mainClass>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Build>${buildNumber}</Implementation-Build>
+                            <Implementation-Version>${buildNumber}</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -307,17 +307,15 @@
                                 </data>
 
                                 <data>
-                                    <type>template</type>
-                                    <paths>
-                                        <path>/usr/share/${project.name}/plugins</path>
-                                    </paths>
+                                    <src>${project.build.directory}/assembly_dist-bin/assembly_dist/${project.name}.sh</src>
+                                    <type>file</type>
                                     <mapper>
                                         <type>perm</type>
                                         <filemode>755</filemode>
                                         <prefix>/usr/share/${project.name}</prefix>
                                     </mapper>
                                 </data>
-
+                                
                                 <data>
                                     <src>${project.build.directory}/assembly_dist-bin/assembly_dist/run.pid</src>
                                     <type>file</type>
