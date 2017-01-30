@@ -1,0 +1,21 @@
+[
+	{
+		"host":"127.0.0.1",
+		"port":2775,
+		"weight":1,
+		"nodeId":"02"
+	},
+	{
+		"host":"127.0.0.1",
+		"port":2776,
+		"weight":1,
+		"nodeId":"05"
+	},
+        {
+                "host":"127.0.0.1",
+                "port":2777,
+                "weight":1,
+                "nodeId":"07",
+		"hidden":true
+        }
+]
