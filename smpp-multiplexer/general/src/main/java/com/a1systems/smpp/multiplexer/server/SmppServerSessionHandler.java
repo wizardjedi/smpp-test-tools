@@ -450,7 +450,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 + remoteAddress.getPort();
 
         try {
-            ssm.setOptionalParameter(TlvUtil.createNullTerminatedStringTlv((byte)0x4123, adrInfo));
+            ssm.setOptionalParameter(TlvUtil.createNullTerminatedStringTlv((short)0x4123, adrInfo));
 
             ssm.calculateAndSetCommandLength();
         } catch (TlvConvertException ex) {
@@ -569,7 +569,7 @@ public class SmppServerSessionHandler extends DefaultSmppSessionHandler {
                 + remoteAddress.getPort();
 
         try {
-            qsm.setOptionalParameter(TlvUtil.createNullTerminatedStringTlv((byte)0x4123, adrInfo));
+            qsm.setOptionalParameter(TlvUtil.createNullTerminatedStringTlv((short)0x4123, adrInfo));
 
             qsm.calculateAndSetCommandLength();
         } catch (TlvConvertException ex) {
