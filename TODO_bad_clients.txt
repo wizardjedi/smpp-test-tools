@@ -19,6 +19,7 @@ Bad clients:
  * Bind session for a single message
  * Send esm_class = 1 (datagram mode) with submit_sm and registered_delivery flag
  * Try to send messages in bind_receive session
+ * Do not analyze deliver_sm
  ** For servers:
  *** Send submit_sm_resp after (semi)unlimited timeout. Answer with submit_sm_resp after 40 minutes.
  Encoding:
