@@ -17,9 +17,11 @@ Bad clients:
  * Drop connection after bind (not waiting for bind_resp)
  * Do not limit speed from client / not using windowing
  * Bind session for a single message
+ * Send esm_class = 1 (datagram mode) with submit_sm and registered_delivery flag
  Encoding:
  * Using ASCI in short_message (semibad)
  * Using utf-8 in short_message (semibad)
+ * Using BOM in message
  * Using ASCII with gsm-7bit encoding (mostly bad)
  * Using 160-byte-lengthed messages for encoding to 7bit on SMSc side (mostly bad)
  PDU encoding:
