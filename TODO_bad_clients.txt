@@ -18,14 +18,21 @@ Bad clients:
  * Do not limit speed from client / not using windowing
  * Bind session for a single message
  * Send esm_class = 1 (datagram mode) with submit_sm and registered_delivery flag
+ * Try to send messages in bind_receive session
+ ** For servers:
+ *** Send submit_sm_resp after (semi)unlimited timeout. Answer with submit_sm_resp after 40 minutes.
  Encoding:
- * Using ASCI in short_message (semibad)
+ * Using ASCII in short_message (semibad)
  * Using utf-8 in short_message (semibad)
+ * Using widnows-1251
  * Using BOM in message
  * Using ASCII with gsm-7bit encoding (mostly bad)
  * Using 160-byte-lengthed messages for encoding to 7bit on SMSc side (mostly bad)
+ * Send HTML in sms such as <b></b>
  PDU encoding:
  * Using numbers started with 8 (semibad, bad for Russia)
+ * Using numbers without prefix (7 for russia) ex. 9261234567
+ * Using numbers with special characters 7(913)123-45-67
  * Using DEF-numbers with incorrect TON/NPI
  * Using Alpha-numbers with incorrect TON/NPI
  * Using + or 00 in International numbers (TON/NPI 1/1)
@@ -39,3 +46,4 @@ Bad clients:
  * Incorrect order of parts (semibad)
  * Sending not all parts with current connection (semibad)
  * Sending all parts only after receiving deliver_sm for first part
+ * Sending single SMS with UDH/SAR for 1 part
