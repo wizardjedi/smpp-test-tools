@@ -4,7 +4,7 @@ Bad clients:
  * Send elink too fast
  * Send elink too slow
  * Do not response with elink_resp
- * Unexpextedly drop connection
+ * Unexpectedly drop connection (close socket without unbind)
  * Do not response to deliver_sm
  * Trying to connect with many sessions (semibad)
  * Do not waiting for unbind (semibad)
