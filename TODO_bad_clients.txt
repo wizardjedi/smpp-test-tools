@@ -25,10 +25,11 @@ Bad clients:
  Encoding:
  * Using ASCII in short_message (semibad)
  * Using utf-8 in short_message (semibad)
- * Using widnows-1251
+ * Using windows-1251
  * Using BOM in message
  * Using ASCII with gsm-7bit encoding (mostly bad)
  * Using 160-byte-lengthed messages for encoding to 7bit on SMSc side (mostly bad)
+ * Using UCS-2 with little endian
  * Send HTML in sms such as <b></b>
  PDU encoding:
  * Using numbers started with 8 (semibad, bad for Russia)
@@ -48,3 +49,4 @@ Bad clients:
  * Sending not all parts with current connection (semibad)
  * Sending all parts only after receiving deliver_sm for first part
  * Sending single SMS with UDH/SAR for 1 part
+ * Sending single SMS wit message_payload
