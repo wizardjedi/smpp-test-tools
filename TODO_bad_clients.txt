@@ -25,6 +25,7 @@ Bad clients:
  Encoding:
  * Using ASCII in short_message (semibad)
  * Using utf-8 in short_message (semibad)
+ * Using utf-16 in short_message (semibad)
  * Using windows-1251
  * Using BOM in message
  * Using ASCII with gsm-7bit encoding (mostly bad)
