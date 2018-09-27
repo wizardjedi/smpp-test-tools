@@ -7,7 +7,7 @@ Bad clients:
  * Unexpectedly drop connection (close socket without unbind)
  * Do not response to deliver_sm
  * Trying to connect with many sessions (semibad)
- * Do not waiting for unbind (semibad)
+ * Do not wait for unbind (semibad)
  * Do not wait on throttling error
  * Too much connections / binds without delay
  * Drop connection on error in resp
@@ -50,4 +50,4 @@ Bad clients:
  * Sending not all parts with current connection (semibad)
  * Sending all parts only after receiving deliver_sm for first part
  * Sending single SMS with UDH/SAR for 1 part
- * Sending single SMS wit message_payload
+ * Sending single SMS with message_payload
