@@ -41,8 +41,8 @@ Bad clients:
  * Using + or 00 in International numbers (TON/NPI 1/1)
  * Using shortnumbers with incorrect TON/NPI
  UDH / SAR concatination:
- * Incorrect length for SAR-concatination
- * Incorrect length for UDH-concatination
+ * Incorrect length for SAR-concatination (short_message longer than 134 octets)
+ * Incorrect length for UDH-concatination (short_message longer than 134 octets without UDH)
  * Incorrect UDH-concatination (8 bit/16 bit/custom)
  * Incorrect esm_class with UDH
  * Incorrect number of messages and message number (semibad)
