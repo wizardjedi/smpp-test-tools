@@ -18,7 +18,7 @@
 
         <mcp.source.version>1.7</mcp.source.version>
         <mcp.target.version>1.7</mcp.target.version>
-        <spring.version>4.0.3.RELEASE</spring.version>
+        <spring.version>5.2.1.RELEASE</spring.version>
         <mcp.version>3.1</mcp.version>
 
         <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
