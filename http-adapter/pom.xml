@@ -28,7 +28,7 @@
 
         <guava.version>16.0</guava.version>
 
-        <jackson.version>2.3.1</jackson.version>
+        <jackson.version>2.10.1</jackson.version>
 
         <joda.time.version>2.3</joda.time.version>
 
