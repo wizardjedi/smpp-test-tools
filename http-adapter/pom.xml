@@ -18,7 +18,7 @@
         <slf4j.version>1.7.5</slf4j.version>
         <logback.version>1.0.13</logback.version>
         <spring.version>4.0.0.RELEASE</spring.version>
-        <junit.version>4.11</junit.version>
+        <junit.version>4.13.1</junit.version>
 
         <ch.smpp.version>5.0.5</ch.smpp.version>
         <ch.commons.gsm.version>3.0.0</ch.commons.gsm.version>
