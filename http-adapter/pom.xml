@@ -42,7 +42,7 @@
         <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
         <jdeb.plugin.version>1.0.1</jdeb.plugin.version>
         <tomcat.dbcp.version>7.0.42</tomcat.dbcp.version>
-        <mysql.connector.version>5.1.28</mysql.connector.version>
+        <mysql.connector.version>8.0.16</mysql.connector.version>
     </properties>
 
     <dependencies>
