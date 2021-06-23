@@ -14,7 +14,7 @@
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <junit.version>4.11</junit.version>
-        <jetty.version>9.1.4.v20140401</jetty.version>
+        <jetty.version>9.4.41.v20210516</jetty.version>
 
         <mcp.source.version>1.7</mcp.source.version>
         <mcp.target.version>1.7</mcp.target.version>
