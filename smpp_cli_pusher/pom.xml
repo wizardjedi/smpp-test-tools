@@ -13,7 +13,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<spring.framework.version>3.2.3.RELEASE</spring.framework.version>
 		<slf4j.version>1.7.5</slf4j.version>
-		<logback.version>1.0.11</logback.version>
+		<logback.version>1.2.0</logback.version>
 		<junit.version>4.11</junit.version>
 		<compile.plugin.version>2.3.1</compile.plugin.version>
 		<compile.java.version>1.6</compile.java.version>
