@@ -18,7 +18,7 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
 
-        <mysql.connector.version>5.1.31</mysql.connector.version>
+        <mysql.connector.version>8.0.28</mysql.connector.version>
         <tomcat.dbcp.version>8.0.8</tomcat.dbcp.version>
 
         <maven.dependency.plugin.version>2.5.1</maven.dependency.plugin.version>
