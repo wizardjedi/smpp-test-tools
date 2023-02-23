@@ -10,21 +10,15 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.pdu.SubmitSm;
-import com.cloudhopper.smpp.type.Address;
-import com.cloudhopper.smpp.type.LoggingOptions;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppBindException;
-import com.cloudhopper.smpp.type.SmppChannelException;
-import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
-import com.cloudhopper.smpp.type.SmppTimeoutException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
-import java.util.concurrent.TimeUnit;
+import com.cloudhopper.smpp.type.*;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+
+import java.util.concurrent.TimeUnit;
 
 public class App {
 
@@ -127,6 +121,9 @@ public class App {
 
 			Runtime.getRuntime().addShutdownHook(new ShutdownHook(session, smppClient));
 
+			if (cfg.isWait()) {
+				TimeUnit.DAYS.sleep(7);
+			}
 		} catch (SmppTimeoutException ex) {
 			log.error("{}", ex);
 		} catch (SmppChannelException ex) {
@@ -165,8 +162,8 @@ public class App {
 
 			Address a = new Address();
 
-			a.setTon((byte)spelParse(parts[0], Byte.class));
-			a.setNpi((byte)spelParse(parts[1], Byte.class));
+			a.setTon(spelParse(parts[0], Byte.class));
+			a.setNpi(spelParse(parts[1], Byte.class));
 
 			a.setAddress(parts[2]);
 
@@ -180,7 +177,7 @@ public class App {
 		return parser.parseExpression(exp).getValue();
 	}
 
-	protected Object spelParse(String exp, Class resultClass) {
+	protected <T> T spelParse(String exp, Class<T> resultClass) {
 		return resultClass.cast(parser.parseExpression(exp).getValue(resultClass));
 	}
 }

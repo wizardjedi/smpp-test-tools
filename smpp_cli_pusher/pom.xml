@@ -16,7 +16,7 @@
 		<logback.version>1.0.11</logback.version>
 		<junit.version>4.11</junit.version>
 		<compile.plugin.version>2.3.1</compile.plugin.version>
-		<compile.java.version>1.7</compile.java.version>
+		<compile.java.version>1.6</compile.java.version>
 		<ch.smpp.version>[5.0.0,)</ch.smpp.version>
 		<ch.commons.gsm.version>[3.0.0,)</ch.commons.gsm.version>
 		<commons.cli.version>20040117.000000</commons.cli.version>
@@ -182,7 +182,7 @@
 				<version>${compile.plugin.version}</version>
 				<configuration>
 					<source>${compile.java.version}</source>
-					<target>${compile.java.version}</target>
+					<target>1.6</target>
 				</configuration>
 			</plugin>
 
